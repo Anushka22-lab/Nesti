@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import api from "./services/api";
 
 import Login from "./Login";
+import Register from "./Register";
+
 import AgentDashboard from "./AgentDashboard";
 import CustomerDashboard from "./CustomerDashboard";
 import AdminDashboard from "./AdminDashboard";
@@ -13,9 +15,13 @@ function App() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // "login" or "register"
+    const [authScreen, setAuthScreen] =
+        useState("login");
+
 
     // ========================================
-    // CHECK LOGIN
+    // CHECK EXISTING LOGIN
     // ========================================
 
     useEffect(() => {
@@ -32,11 +38,15 @@ function App() {
                     response.data.user
                 );
 
-                setUser(response.data.user);
+                setUser(
+                    response.data.user
+                );
 
             } catch (error) {
 
-                console.log("No active login");
+                console.log(
+                    "No active login"
+                );
 
                 setUser(null);
 
@@ -54,7 +64,7 @@ function App() {
 
 
     // ========================================
-    // LOGIN
+    // LOGIN SUCCESS
     // ========================================
 
     const handleLogin = (loggedInUser) => {
@@ -70,6 +80,24 @@ function App() {
 
 
     // ========================================
+    // REGISTRATION SUCCESS
+    // ========================================
+    // Register.jsx should call this after
+    // successful customer registration.
+    //
+    // We intentionally DO NOT automatically
+    // log the customer in here.
+    //
+    // User is sent back to Login screen.
+
+    const handleRegisterSuccess = () => {
+
+        setAuthScreen("login");
+
+    };
+
+
+    // ========================================
     // LOGOUT
     // ========================================
 
@@ -78,22 +106,29 @@ function App() {
         try {
 
             const response =
-                await api.post("/auth/logout");
+                await api.post(
+                    "/auth/logout"
+                );
 
             console.log(
+                "Logout response:",
                 response.data
             );
 
         } catch (error) {
 
             console.log(
+                "Logout request failed:",
                 error.response?.data?.message ||
-                "Logout request failed"
+                error.message
             );
 
         } finally {
 
             setUser(null);
+
+            // Always return to login screen
+            setAuthScreen("login");
 
         }
 
@@ -107,9 +142,14 @@ function App() {
     if (loading) {
 
         return (
+
             <div style={styles.center}>
 
                 <div style={styles.loadingCard}>
+
+                    <div style={styles.logo}>
+                        Nesti
+                    </div>
 
                     <h2>
                         Loading Nesti...
@@ -122,6 +162,7 @@ function App() {
                 </div>
 
             </div>
+
         );
 
     }
@@ -133,10 +174,41 @@ function App() {
 
     if (!user) {
 
+        // -------------------------------
+        // LOGIN
+        // -------------------------------
+
+        if (authScreen === "login") {
+
+            return (
+
+                <Login
+                    onLogin={handleLogin}
+                    onRegister={() =>
+                        setAuthScreen("register")
+                    }
+                />
+
+            );
+
+        }
+
+
+        // -------------------------------
+        // REGISTER
+        // -------------------------------
+
         return (
-            <Login
-                onLogin={handleLogin}
+
+            <Register
+                onRegisterSuccess={
+                    handleRegisterSuccess
+                }
+                onLogin={() =>
+                    setAuthScreen("login")
+                }
             />
+
         );
 
     }
@@ -149,10 +221,12 @@ function App() {
     if (user.role === "agent") {
 
         return (
+
             <AgentDashboard
                 user={user}
                 onLogout={handleLogout}
             />
+
         );
 
     }
@@ -165,10 +239,12 @@ function App() {
     if (user.role === "customer") {
 
         return (
+
             <CustomerDashboard
                 user={user}
                 onLogout={handleLogout}
             />
+
         );
 
     }
@@ -181,10 +257,12 @@ function App() {
     if (user.role === "admin") {
 
         return (
+
             <AdminDashboard
                 user={user}
                 onLogout={handleLogout}
             />
+
         );
 
     }
@@ -195,16 +273,21 @@ function App() {
     // ========================================
 
     return (
+
         <div style={styles.center}>
 
             <div style={styles.loadingCard}>
+
+                <div style={styles.logo}>
+                    Nesti
+                </div>
 
                 <h2>
                     Unknown User Role
                 </h2>
 
                 <p>
-                    Role: {user.role}
+                    Role: {user.role || "Unknown"}
                 </p>
 
                 <button
@@ -217,10 +300,15 @@ function App() {
             </div>
 
         </div>
+
     );
 
 }
 
+
+// ========================================
+// STYLES
+// ========================================
 
 const styles = {
 
@@ -240,20 +328,35 @@ const styles = {
 
     },
 
+
     loadingCard: {
 
-        background: "white",
+        width: "360px",
 
         padding: "40px",
 
-        borderRadius: "14px",
+        background: "white",
+
+        borderRadius: "16px",
 
         textAlign: "center",
 
         boxShadow:
-            "0 10px 30px rgba(0,0,0,0.08)"
+            "0 10px 40px rgba(0,0,0,0.08)"
 
     },
+
+
+    logo: {
+
+        fontSize: "32px",
+
+        fontWeight: "800",
+
+        marginBottom: "10px"
+
+    },
+
 
     logoutButton: {
 

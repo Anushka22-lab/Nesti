@@ -1,59 +1,100 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "./services/api";
 
 function AdminDashboard({ user, onLogout }) {
+
     const [tickets, setTickets] = useState([]);
     const [agents, setAgents] = useState([]);
+
+    const [analytics, setAnalytics] = useState(null);
+
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
     const [assigning, setAssigning] = useState(null);
 
-    // =========================================
+    // ========================================
+    // FILTER STATES
+    // ========================================
+
+    const [search, setSearch] = useState("");
+
+    const [statusFilter, setStatusFilter] =
+        useState("all");
+
+    const [priorityFilter, setPriorityFilter] =
+        useState("all");
+
+    const [categoryFilter, setCategoryFilter] =
+        useState("all");
+
+    const [agentFilter, setAgentFilter] =
+        useState("all");
+
+
+    // ========================================
     // FETCH TICKETS
-    // =========================================
+    // ========================================
 
     const fetchTickets = async () => {
+
         try {
-            const response = await api.get("/tickets/all");
 
-            console.log("ADMIN TICKETS:", response.data);
+            const response =
+                await api.get("/tickets/all");
 
-            setTickets(response.data.tickets || []);
+            console.log(
+                "ADMIN TICKETS:",
+                response.data
+            );
+
+            setTickets(
+                response.data.tickets || []
+            );
 
         } catch (error) {
+
             console.log(
                 "Tickets error:",
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setMessage(
                 error.response?.data?.message ||
                 "Failed to load tickets"
             );
+
         }
+
     };
 
 
-    // =========================================
+    // ========================================
     // FETCH AGENTS
-    // =========================================
+    // ========================================
 
     const fetchAgents = async () => {
+
         try {
 
-            // IMPORTANT:
-            // Backend route is /api/agent/agents
-            const response = await api.get("/agent/agents");
+            const response =
+                await api.get("/agent/agents");
 
-            console.log("AGENTS:", response.data);
+            console.log(
+                "AGENTS:",
+                response.data
+            );
 
-            setAgents(response.data.agents || []);
+            setAgents(
+                response.data.agents || []
+            );
 
         } catch (error) {
 
             console.log(
                 "Agents error:",
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setAgents([]);
@@ -62,13 +103,51 @@ function AdminDashboard({ user, onLogout }) {
                 error.response?.data?.message ||
                 "Failed to load agents"
             );
+
         }
+
     };
 
 
-    // =========================================
+    // ========================================
+    // FETCH ANALYTICS
+    // ========================================
+
+    const fetchAnalytics = async () => {
+
+        try {
+
+            const response =
+                await api.get("/tickets/analytics");
+
+            console.log(
+                "ANALYTICS:",
+                response.data
+            );
+
+            setAnalytics(response.data);
+
+        } catch (error) {
+
+            console.log(
+                "Analytics error:",
+                error.response?.data ||
+                error.message
+            );
+
+            setMessage(
+                error.response?.data?.message ||
+                "Failed to load analytics"
+            );
+
+        }
+
+    };
+
+
+    // ========================================
     // INITIAL LOAD
-    // =========================================
+    // ========================================
 
     useEffect(() => {
 
@@ -78,10 +157,12 @@ function AdminDashboard({ user, onLogout }) {
 
             await Promise.all([
                 fetchTickets(),
-                fetchAgents()
+                fetchAgents(),
+                fetchAnalytics()
             ]);
 
             setLoading(false);
+
         };
 
         loadData();
@@ -89,11 +170,156 @@ function AdminDashboard({ user, onLogout }) {
     }, []);
 
 
-    // =========================================
-    // ASSIGN TICKET
-    // =========================================
+    // ========================================
+    // STATS
+    // ========================================
 
-    const assignTicket = async (ticketId, agentId) => {
+    const stats = useMemo(() => {
+
+        return {
+
+            total:
+                tickets.length,
+
+            open:
+                tickets.filter(
+                    ticket =>
+                        ticket.status === "open"
+                ).length,
+
+            inProgress:
+                tickets.filter(
+                    ticket =>
+                        ticket.status === "in-progress"
+                ).length,
+
+            resolved:
+                tickets.filter(
+                    ticket =>
+                        ticket.status === "resolved"
+                ).length,
+
+            urgent:
+                tickets.filter(
+                    ticket =>
+                        ticket.priority === "urgent"
+                ).length
+
+        };
+
+    }, [tickets]);
+
+
+    // ========================================
+    // FILTERED TICKETS
+    // ========================================
+
+    const filteredTickets = useMemo(() => {
+
+        const searchText =
+            search
+                .trim()
+                .toLowerCase();
+
+
+        return tickets.filter(
+            (ticket) => {
+
+                const matchesSearch =
+                    !searchText ||
+
+                    ticket.title
+                        ?.toLowerCase()
+                        .includes(searchText) ||
+
+                    ticket.description
+                        ?.toLowerCase()
+                        .includes(searchText) ||
+
+                    ticket.createdBy?.name
+                        ?.toLowerCase()
+                        .includes(searchText) ||
+
+                    ticket.createdBy?.email
+                        ?.toLowerCase()
+                        .includes(searchText) ||
+
+                    ticket.assignedTo?.name
+                        ?.toLowerCase()
+                        .includes(searchText);
+
+
+                const matchesStatus =
+                    statusFilter === "all" ||
+                    ticket.status === statusFilter;
+
+
+                const matchesPriority =
+                    priorityFilter === "all" ||
+                    ticket.priority === priorityFilter;
+
+
+                const matchesCategory =
+                    categoryFilter === "all" ||
+                    ticket.category === categoryFilter;
+
+
+                const matchesAgent =
+                    agentFilter === "all" ||
+                    ticket.assignedTo?._id ===
+                        agentFilter ||
+                    ticket.assignedTo ===
+                        agentFilter;
+
+
+                return (
+                    matchesSearch &&
+                    matchesStatus &&
+                    matchesPriority &&
+                    matchesCategory &&
+                    matchesAgent
+                );
+
+            }
+        );
+
+    }, [
+        tickets,
+        search,
+        statusFilter,
+        priorityFilter,
+        categoryFilter,
+        agentFilter
+    ]);
+
+
+    // ========================================
+    // CLEAR FILTERS
+    // ========================================
+
+    const clearFilters = () => {
+
+        setSearch("");
+
+        setStatusFilter("all");
+
+        setPriorityFilter("all");
+
+        setCategoryFilter("all");
+
+        setAgentFilter("all");
+
+    };
+
+
+    // ========================================
+    // ASSIGN TICKET
+    // ========================================
+
+    const assignTicket = async (
+        ticketId,
+        agentId
+    ) => {
 
         if (!agentId) {
             return;
@@ -102,60 +328,68 @@ function AdminDashboard({ user, onLogout }) {
         try {
 
             setAssigning(ticketId);
+
             setMessage("");
 
-            console.log(
-                "Assigning:",
-                ticketId,
-                "to:",
-                agentId
-            );
 
-            const response = await api.patch(
-                `/tickets/${ticketId}/assign`,
-                {
-                    assignedTo: agentId
-                }
-            );
+            const response =
+                await api.patch(
+                    `/tickets/${ticketId}/assign`,
+                    {
+                        agentId
+                    }
+                );
+
 
             console.log(
                 "ASSIGN RESPONSE:",
                 response.data
             );
 
+
             setMessage(
                 "Ticket assigned successfully 🎉"
             );
 
-            await fetchTickets();
+
+            await Promise.all([
+                fetchTickets(),
+                fetchAnalytics()
+            ]);
+
 
         } catch (error) {
 
             console.log(
                 "Assignment error:",
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
+
 
             setMessage(
                 error.response?.data?.message ||
                 "Failed to assign ticket"
             );
 
+
         } finally {
 
             setAssigning(null);
 
         }
+
     };
 
 
-    // =========================================
+    // ========================================
     // LOADING
-    // =========================================
+    // ========================================
 
     if (loading) {
 
         return (
+
             <div style={styles.center}>
 
                 <div style={styles.loadingCard}>
@@ -165,36 +399,88 @@ function AdminDashboard({ user, onLogout }) {
                     </h2>
 
                     <p>
-                        Fetching tickets and agents
+                        Fetching tickets,
+                        agents and analytics
                     </p>
 
                 </div>
 
             </div>
+
         );
 
     }
 
 
-    // =========================================
+    // ========================================
+    // ANALYTICS DATA
+    // ========================================
+
+    const priorityStats =
+        analytics?.priorityStats || [];
+
+    const categoryStats =
+        analytics?.categoryStats || [];
+
+    const agentWorkload =
+        analytics?.agentWorkload || [];
+
+
+    const getStatCount = (
+        array,
+        name
+    ) => {
+
+        const item =
+            array.find(
+                item =>
+                    item._id === name
+            );
+
+        return item?.count || 0;
+
+    };
+
+
+    const maxPriority =
+        Math.max(
+            ...priorityStats.map(
+                item => item.count
+            ),
+            1
+        );
+
+
+    const maxCategory =
+        Math.max(
+            ...categoryStats.map(
+                item => item.count
+            ),
+            1
+        );
+
+
+    // ========================================
     // DASHBOARD
-    // =========================================
+    // ========================================
 
     return (
 
         <div style={styles.page}>
 
-            {/* ================= NAVBAR ================= */}
+            {/* ================================= */}
+            {/* NAVBAR */}
+            {/* ================================= */}
 
             <nav style={styles.navbar}>
 
                 <div>
 
-                    <h2 style={{ margin: 0 }}>
+                    <h2 style={styles.logo}>
                         Nesti
                     </h2>
 
-                    <small>
+                    <small style={styles.subtitle}>
                         AI-powered customer support
                     </small>
 
@@ -228,7 +514,9 @@ function AdminDashboard({ user, onLogout }) {
             </nav>
 
 
-            {/* ================= MAIN ================= */}
+            {/* ================================= */}
+            {/* MAIN */}
+            {/* ================================= */}
 
             <main style={styles.container}>
 
@@ -238,29 +526,50 @@ function AdminDashboard({ user, onLogout }) {
 
                     <div>
 
-                        <h1>
+                        <h1 style={styles.heading}>
                             Admin Dashboard
                         </h1>
 
-                        <p>
-                            Manage customer tickets and assign them
-                            to support agents.
+                        <p style={styles.headerText}>
+                            Monitor and manage your
+                            customer support system.
                         </p>
 
                     </div>
 
+                </div>
 
-                    <div style={styles.stats}>
 
-                        <strong>
-                            {tickets.length}
-                        </strong>
+                {/* ================================= */}
+                {/* STAT CARDS */}
+                {/* ================================= */}
 
-                        <span>
-                            Total Tickets
-                        </span>
+                <div style={styles.statsGrid}>
 
-                    </div>
+                    <StatCard
+                        title="Total Tickets"
+                        value={stats.total}
+                    />
+
+                    <StatCard
+                        title="Open"
+                        value={stats.open}
+                    />
+
+                    <StatCard
+                        title="In Progress"
+                        value={stats.inProgress}
+                    />
+
+                    <StatCard
+                        title="Resolved"
+                        value={stats.resolved}
+                    />
+
+                    <StatCard
+                        title="Urgent"
+                        value={stats.urgent}
+                    />
 
                 </div>
 
@@ -270,333 +579,928 @@ function AdminDashboard({ user, onLogout }) {
                 {message && (
 
                     <div style={styles.message}>
-
                         {message}
-
                     </div>
 
                 )}
 
 
-                {/* AGENT COUNT */}
+                {/* ================================= */}
+                {/* ANALYTICS */}
+                {/* ================================= */}
 
-                <div style={styles.agentInfo}>
+                <section style={styles.analyticsSection}>
 
-                    <strong>
-                        Available Agents:
-                    </strong>
+                    <div style={styles.analyticsHeader}>
 
-                    <span>
-                        {agents.length}
-                    </span>
+                        <div>
+
+                            <h2 style={styles.analyticsTitle}>
+                                Support Analytics
+                            </h2>
+
+                            <p style={styles.analyticsSubtitle}>
+                                Understand ticket distribution
+                                and agent workload.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ================================= */}
+                    {/* ANALYTICS CARDS */}
+                    {/* ================================= */}
+
+                    <div style={styles.analyticsGrid}>
+
+
+                        {/* PRIORITY */}
+
+                        <div style={styles.analyticsCard}>
+
+                            <h3>
+                                Priority Distribution
+                            </h3>
+
+                            <p style={styles.cardDescription}>
+                                Tickets by priority
+                            </p>
+
+
+                            <AnalyticsBar
+                                label="Low"
+                                value={
+                                    getStatCount(
+                                        priorityStats,
+                                        "low"
+                                    )
+                                }
+                                max={maxPriority}
+                            />
+
+                            <AnalyticsBar
+                                label="Medium"
+                                value={
+                                    getStatCount(
+                                        priorityStats,
+                                        "medium"
+                                    )
+                                }
+                                max={maxPriority}
+                            />
+
+                            <AnalyticsBar
+                                label="High"
+                                value={
+                                    getStatCount(
+                                        priorityStats,
+                                        "high"
+                                    )
+                                }
+                                max={maxPriority}
+                            />
+
+                            <AnalyticsBar
+                                label="Urgent"
+                                value={
+                                    getStatCount(
+                                        priorityStats,
+                                        "urgent"
+                                    )
+                                }
+                                max={maxPriority}
+                            />
+
+                        </div>
+
+
+                        {/* CATEGORY */}
+
+                        <div style={styles.analyticsCard}>
+
+                            <h3>
+                                Category Distribution
+                            </h3>
+
+                            <p style={styles.cardDescription}>
+                                Tickets by category
+                            </p>
+
+
+                            <AnalyticsBar
+                                label="Technical"
+                                value={
+                                    getStatCount(
+                                        categoryStats,
+                                        "technical"
+                                    )
+                                }
+                                max={maxCategory}
+                            />
+
+                            <AnalyticsBar
+                                label="Billing"
+                                value={
+                                    getStatCount(
+                                        categoryStats,
+                                        "billing"
+                                    )
+                                }
+                                max={maxCategory}
+                            />
+
+                            <AnalyticsBar
+                                label="Account"
+                                value={
+                                    getStatCount(
+                                        categoryStats,
+                                        "account"
+                                    )
+                                }
+                                max={maxCategory}
+                            />
+
+                            <AnalyticsBar
+                                label="General"
+                                value={
+                                    getStatCount(
+                                        categoryStats,
+                                        "general"
+                                    )
+                                }
+                                max={maxCategory}
+                            />
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ================================= */}
+                    {/* AGENT WORKLOAD */}
+                    {/* ================================= */}
+
+                    <div style={styles.workloadCard}>
+
+                        <div style={styles.workloadHeader}>
+
+                            <div>
+
+                                <h3>
+                                    Agent Workload
+                                </h3>
+
+                                <p style={styles.cardDescription}>
+                                    Monitor assigned,
+                                    active and resolved tickets.
+                                </p>
+
+                            </div>
+
+                            <span style={styles.agentCount}>
+                                {agentWorkload.length} Agents
+                            </span>
+
+                        </div>
+
+
+                        {agentWorkload.length === 0 ? (
+
+                            <div style={styles.noWorkload}>
+                                No assigned tickets yet.
+                            </div>
+
+                        ) : (
+
+                            <div style={styles.workloadGrid}>
+
+                                {agentWorkload.map(
+                                    (agent) => (
+
+                                        <div
+                                            key={
+                                                agent.agentId
+                                            }
+                                            style={
+                                                styles.agentCard
+                                            }
+                                        >
+
+                                            <div
+                                                style={
+                                                    styles.agentTop
+                                                }
+                                            >
+
+                                                <div>
+
+                                                    <h4
+                                                        style={
+                                                            styles.agentName
+                                                        }
+                                                    >
+                                                        {
+                                                            agent.name
+                                                        }
+                                                    </h4>
+
+                                                    <small
+                                                        style={
+                                                            styles.agentDepartment
+                                                        }
+                                                    >
+                                                        {
+                                                            agent.department ||
+                                                            "Support"
+                                                        }
+                                                    </small>
+
+                                                </div>
+
+                                                <span
+                                                    style={
+                                                        styles.activeBadge
+                                                    }
+                                                >
+                                                    {
+                                                        agent.activeTickets
+                                                    } active
+                                                </span>
+
+                                            </div>
+
+
+                                            <div
+                                                style={
+                                                    styles.workloadStats
+                                                }
+                                            >
+
+                                                <WorkloadStat
+                                                    label="Total"
+                                                    value={
+                                                        agent.totalTickets
+                                                    }
+                                                />
+
+                                                <WorkloadStat
+                                                    label="Active"
+                                                    value={
+                                                        agent.activeTickets
+                                                    }
+                                                />
+
+                                                <WorkloadStat
+                                                    label="Resolved"
+                                                    value={
+                                                        agent.resolvedTickets
+                                                    }
+                                                />
+
+                                            </div>
+
+
+                                            <div
+                                                style={
+                                                    styles.workloadProgress
+                                                }
+                                            >
+
+                                                <div
+                                                    style={{
+                                                        ...styles.progressFill,
+                                                        width:
+                                                            `${Math.min(
+                                                                100,
+                                                                agent.totalTickets
+                                                                    ? (
+                                                                        agent.activeTickets /
+                                                                        agent.totalTickets
+                                                                    ) *
+                                                                    100
+                                                                    : 0
+                                                            )}%`
+                                                    }}
+                                                />
+
+                                            </div>
+
+
+                                            <small
+                                                style={
+                                                    styles.progressText
+                                                }
+                                            >
+                                                Active workload
+                                            </small>
+
+                                        </div>
+
+                                    )
+                                )}
+
+                            </div>
+
+                        )}
+
+                    </div>
+
+                </section>
+
+
+                {/* ================================= */}
+                {/* FILTERS */}
+                {/* ================================= */}
+
+                <div style={styles.filterCard}>
+
+                    <div style={styles.filterHeader}>
+
+                        <div>
+
+                            <h2 style={{ margin: 0 }}>
+                                Ticket Management
+                            </h2>
+
+                            <p style={styles.filterSubtext}>
+                                Search and filter customer
+                                tickets.
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            onClick={clearFilters}
+                            style={styles.clearButton}
+                        >
+                            Clear Filters
+                        </button>
+
+                    </div>
+
+
+                    {/* SEARCH */}
+
+                    <input
+                        type="text"
+                        placeholder="Search by title, description, customer or agent..."
+                        value={search}
+                        onChange={(e) =>
+                            setSearch(
+                                e.target.value
+                            )
+                        }
+                        style={styles.searchInput}
+                    />
+
+
+                    {/* FILTER ROW */}
+
+                    <div style={styles.filters}>
+
+                        <select
+                            value={statusFilter}
+                            onChange={(e) =>
+                                setStatusFilter(
+                                    e.target.value
+                                )
+                            }
+                            style={styles.select}
+                        >
+
+                            <option value="all">
+                                All Statuses
+                            </option>
+
+                            <option value="open">
+                                Open
+                            </option>
+
+                            <option value="in-progress">
+                                In Progress
+                            </option>
+
+                            <option value="resolved">
+                                Resolved
+                            </option>
+
+                        </select>
+
+
+                        <select
+                            value={priorityFilter}
+                            onChange={(e) =>
+                                setPriorityFilter(
+                                    e.target.value
+                                )
+                            }
+                            style={styles.select}
+                        >
+
+                            <option value="all">
+                                All Priorities
+                            </option>
+
+                            <option value="low">
+                                Low
+                            </option>
+
+                            <option value="medium">
+                                Medium
+                            </option>
+
+                            <option value="high">
+                                High
+                            </option>
+
+                            <option value="urgent">
+                                Urgent
+                            </option>
+
+                        </select>
+
+
+                        <select
+                            value={categoryFilter}
+                            onChange={(e) =>
+                                setCategoryFilter(
+                                    e.target.value
+                                )
+                            }
+                            style={styles.select}
+                        >
+
+                            <option value="all">
+                                All Categories
+                            </option>
+
+                            <option value="technical">
+                                Technical
+                            </option>
+
+                            <option value="billing">
+                                Billing
+                            </option>
+
+                            <option value="account">
+                                Account
+                            </option>
+
+                            <option value="general">
+                                General
+                            </option>
+
+                        </select>
+
+
+                        <select
+                            value={agentFilter}
+                            onChange={(e) =>
+                                setAgentFilter(
+                                    e.target.value
+                                )
+                            }
+                            style={styles.select}
+                        >
+
+                            <option value="all">
+                                All Agents
+                            </option>
+
+                            {agents.map(
+                                (agent) => (
+
+                                    <option
+                                        key={
+                                            agent._id
+                                        }
+                                        value={
+                                            agent._id
+                                        }
+                                    >
+                                        {agent.name}
+                                    </option>
+
+                                )
+                            )}
+
+                        </select>
+
+                    </div>
+
+
+                    <div style={styles.resultCount}>
+
+                        Showing{" "}
+
+                        <strong>
+                            {filteredTickets.length}
+                        </strong>{" "}
+
+                        of{" "}
+
+                        <strong>
+                            {tickets.length}
+                        </strong>{" "}
+
+                        tickets
+
+                    </div>
 
                 </div>
 
 
-                <h2 style={{ marginTop: "30px" }}>
-                    All Customer Tickets
+                {/* ================================= */}
+                {/* TICKETS */}
+                {/* ================================= */}
+
+                <h2 style={styles.sectionTitle}>
+                    Customer Tickets
                 </h2>
 
 
-                {/* ================= NO TICKETS ================= */}
-
-                {tickets.length === 0 ? (
+                {filteredTickets.length === 0 ? (
 
                     <div style={styles.empty}>
 
                         <h3>
-                            No tickets found.
+                            No tickets found
                         </h3>
 
                         <p>
-                            Customer tickets will appear here.
+                            Try changing your
+                            search or filters.
                         </p>
 
                         <button
-                            onClick={async () => {
-
-                                await fetchTickets();
-                                await fetchAgents();
-
-                            }}
+                            onClick={clearFilters}
                             style={styles.refreshButton}
                         >
-                            Refresh
+                            Clear Filters
                         </button>
 
                     </div>
 
                 ) : (
 
-                    /* ================= TICKETS ================= */
-
                     <div style={styles.grid}>
 
-                        {tickets.map((ticket) => (
+                        {filteredTickets.map(
+                            (ticket) => (
 
-                            <div
-                                key={ticket._id}
-                                style={styles.ticket}
-                            >
+                                <div
+                                    key={
+                                        ticket._id
+                                    }
+                                    style={styles.ticket}
+                                >
 
-                                {/* TITLE + STATUS */}
-
-                                <div style={styles.ticketTop}>
-
-                                    <h2 style={{ marginTop: 0 }}>
-                                        {ticket.title}
-                                    </h2>
-
-
-                                    <span
-                                        style={{
-                                            ...styles.status,
-                                            background:
-                                                getStatusColor(
-                                                    ticket.status
-                                                )
-                                        }}
+                                    <div
+                                        style={
+                                            styles.ticketTop
+                                        }
                                     >
-                                        {ticket.status}
-                                    </span>
 
-                                </div>
-
-
-                                {/* DESCRIPTION */}
-
-                                <p style={styles.description}>
-                                    {ticket.description}
-                                </p>
-
-
-                                {/* TAGS */}
-
-                                <div style={styles.tags}>
-
-                                    <span style={styles.category}>
-                                        {ticket.category}
-                                    </span>
-
-                                    <span style={styles.priority}>
-                                        {ticket.priority}
-                                    </span>
-
-                                </div>
+                                        <h2
+                                            style={{
+                                                marginTop: 0,
+                                                marginBottom: 0
+                                            }}
+                                        >
+                                            {
+                                                ticket.title
+                                            }
+                                        </h2>
 
 
-                                <hr />
-
-
-                                {/* CUSTOMER + AI */}
-
-                                <div style={styles.infoRow}>
-
-                                    <div>
-
-                                        <strong>
-                                            Customer
-                                        </strong>
-
-                                        <p>
-                                            {ticket.createdBy?.name ||
-                                                "Unknown"}
-                                        </p>
-
-                                        <small>
-                                            {ticket.createdBy?.email ||
-                                                "No email"}
-                                        </small>
+                                        <span
+                                            style={{
+                                                ...styles.status,
+                                                background:
+                                                    getStatusBackground(
+                                                        ticket.status
+                                                    )
+                                            }}
+                                        >
+                                            {
+                                                ticket.status
+                                            }
+                                        </span>
 
                                     </div>
 
 
-                                    <div>
+                                    <p
+                                        style={
+                                            styles.description
+                                        }
+                                    >
+                                        {
+                                            ticket.description
+                                        }
+                                    </p>
 
-                                        <strong>
-                                            AI Department
-                                        </strong>
 
-                                        <p>
-                                            {ticket.aiAnalysis
-                                                ?.suggestedDepartment ||
-                                                "Not available"}
-                                        </p>
+                                    <div
+                                        style={
+                                            styles.tags
+                                        }
+                                    >
+
+                                        <span
+                                            style={
+                                                styles.category
+                                            }
+                                        >
+                                            {
+                                                ticket.category ||
+                                                "General"
+                                            }
+                                        </span>
+
+
+                                        <span
+                                            style={
+                                                styles.priority
+                                            }
+                                        >
+                                            {
+                                                ticket.priority ||
+                                                "medium"
+                                            }
+                                        </span>
 
                                     </div>
 
-                                </div>
+
+                                    <hr />
 
 
-                                {/* ================= ASSIGNMENT ================= */}
+                                    <div
+                                        style={
+                                            styles.infoRow
+                                        }
+                                    >
 
-                                <div style={styles.assignment}>
+                                        <div>
 
-                                    <strong>
-                                        Assigned Agent
-                                    </strong>
+                                            <strong>
+                                                Customer
+                                            </strong>
 
-
-                                    {ticket.assignedTo ? (
-
-                                        <div style={styles.currentAgent}>
-
-                                            <span>
-                                                ✓{" "}
-                                                {ticket.assignedTo.name ||
-                                                    "Assigned"}
-                                            </span>
+                                            <p>
+                                                {
+                                                    ticket
+                                                        .createdBy
+                                                        ?.name ||
+                                                    "Unknown"
+                                                }
+                                            </p>
 
                                             <small>
-                                                {ticket.assignedTo.department ||
-                                                    "Support Agent"}
+                                                {
+                                                    ticket
+                                                        .createdBy
+                                                        ?.email ||
+                                                    "No email"
+                                                }
                                             </small>
 
                                         </div>
 
-                                    ) : (
 
-                                        <p style={styles.notAssigned}>
-                                            Not assigned yet
-                                        </p>
+                                        <div>
 
-                                    )}
+                                            <strong>
+                                                AI Department
+                                            </strong>
+
+                                            <p>
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        ?.suggestedDepartment ||
+                                                    "Not available"
+                                                }
+                                            </p>
+
+                                        </div>
+
+                                    </div>
 
 
-                                    {/* AGENT DROPDOWN */}
+                                    {/* ASSIGNMENT */}
 
-                                    <label style={styles.label}>
-                                        Assign / Change Agent
-                                    </label>
-
-
-                                    <select
-
-                                        value={
-                                            ticket.assignedTo?._id ||
-                                            ticket.assignedTo ||
-                                            ""
+                                    <div
+                                        style={
+                                            styles.assignment
                                         }
-
-                                        onChange={(e) =>
-                                            assignTicket(
-                                                ticket._id,
-                                                e.target.value
-                                            )
-                                        }
-
-                                        disabled={
-                                            assigning === ticket._id
-                                        }
-
-                                        style={styles.select}
                                     >
 
-                                        <option value="">
-                                            Select an agent
-                                        </option>
+                                        <strong>
+                                            Assigned Agent
+                                        </strong>
 
 
-                                        {agents.map((agent) => (
+                                        {ticket.assignedTo ? (
 
-                                            <option
-                                                key={agent._id}
-                                                value={agent._id}
+                                            <div
+                                                style={
+                                                    styles.currentAgent
+                                                }
                                             >
 
-                                                {agent.name}
+                                                <span>
+                                                    ✓{" "}
+                                                    {
+                                                        ticket
+                                                            .assignedTo
+                                                            .name ||
+                                                        "Assigned"
+                                                    }
+                                                </span>
 
-                                                {agent.department
-                                                    ? ` - ${agent.department}`
-                                                    : ""}
+                                                <small>
+                                                    {
+                                                        ticket
+                                                            .assignedTo
+                                                            .department ||
+                                                        "Support Agent"
+                                                    }
+                                                </small>
 
-                                            </option>
+                                            </div>
 
-                                        ))}
+                                        ) : (
 
-                                    </select>
+                                            <p
+                                                style={
+                                                    styles.notAssigned
+                                                }
+                                            >
+                                                Not assigned yet
+                                            </p>
+
+                                        )}
 
 
-                                    {assigning === ticket._id && (
-
-                                        <small
+                                        <label
                                             style={
-                                                styles.assigningText
+                                                styles.label
                                             }
                                         >
-                                            Assigning ticket...
-                                        </small>
+                                            Assign / Change Agent
+                                        </label>
+
+
+                                        <select
+                                            value={
+                                                ticket.assignedTo?._id ||
+                                                ticket.assignedTo ||
+                                                ""
+                                            }
+                                            onChange={(e) =>
+                                                assignTicket(
+                                                    ticket._id,
+                                                    e.target.value
+                                                )
+                                            }
+                                            disabled={
+                                                assigning ===
+                                                ticket._id
+                                            }
+                                            style={
+                                                styles.select
+                                            }
+                                        >
+
+                                            <option value="">
+                                                Select an agent
+                                            </option>
+
+
+                                            {agents.map(
+                                                (agent) => (
+
+                                                    <option
+                                                        key={
+                                                            agent._id
+                                                        }
+                                                        value={
+                                                            agent._id
+                                                        }
+                                                    >
+                                                        {
+                                                            agent.name
+                                                        }
+
+                                                        {
+                                                            agent.department
+                                                                ? ` - ${agent.department}`
+                                                                : ""
+                                                        }
+
+                                                    </option>
+
+                                                )
+                                            )}
+
+                                        </select>
+
+
+                                        {assigning ===
+                                            ticket._id && (
+
+                                            <small
+                                                style={
+                                                    styles.assigningText
+                                                }
+                                            >
+                                                Assigning ticket...
+                                            </small>
+
+                                        )}
+
+                                    </div>
+
+
+                                    {/* AI ANALYSIS */}
+
+                                    {ticket.aiAnalysis && (
+
+                                        <div
+                                            style={
+                                                styles.aiBox
+                                            }
+                                        >
+
+                                            <h3>
+                                                🤖 AI Analysis
+                                            </h3>
+
+
+                                            <p>
+                                                <strong>
+                                                    Category:
+                                                </strong>{" "}
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        .category ||
+                                                    "N/A"
+                                                }
+                                            </p>
+
+
+                                            <p>
+                                                <strong>
+                                                    Priority:
+                                                </strong>{" "}
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        .priority ||
+                                                    "N/A"
+                                                }
+                                            </p>
+
+
+                                            <p>
+                                                <strong>
+                                                    Intent:
+                                                </strong>{" "}
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        .intent ||
+                                                    "N/A"
+                                                }
+                                            </p>
+
+
+                                            <p>
+                                                <strong>
+                                                    Summary:
+                                                </strong>{" "}
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        .summary ||
+                                                    "N/A"
+                                                }
+                                            </p>
+
+                                        </div>
 
                                     )}
 
                                 </div>
 
-
-                                {/* ================= AI ANALYSIS ================= */}
-
-                                {ticket.aiAnalysis && (
-
-                                    <div style={styles.aiBox}>
-
-                                        <h3>
-                                            🤖 AI Analysis
-                                        </h3>
-
-
-                                        <p>
-
-                                            <strong>
-                                                Category:
-                                            </strong>{" "}
-
-                                            {ticket.aiAnalysis.category ||
-                                                "N/A"}
-
-                                        </p>
-
-
-                                        <p>
-
-                                            <strong>
-                                                Priority:
-                                            </strong>{" "}
-
-                                            {ticket.aiAnalysis.priority ||
-                                                "N/A"}
-
-                                        </p>
-
-
-                                        <p>
-
-                                            <strong>
-                                                Intent:
-                                            </strong>{" "}
-
-                                            {ticket.aiAnalysis.intent ||
-                                                "N/A"}
-
-                                        </p>
-
-
-                                        <p>
-
-                                            <strong>
-                                                Summary:
-                                            </strong>{" "}
-
-                                            {ticket.aiAnalysis.summary ||
-                                                "N/A"}
-
-                                        </p>
-
-                                    </div>
-
-                                )}
-
-                            </div>
-
-                        ))}
+                            )
+                        )}
 
                     </div>
 
@@ -605,15 +1509,124 @@ function AdminDashboard({ user, onLogout }) {
             </main>
 
         </div>
+
     );
+
 }
 
 
-// =========================================
-// STATUS COLOR
-// =========================================
+// ========================================
+// STAT CARD
+// ========================================
 
-function getStatusColor(status) {
+function StatCard({
+    title,
+    value
+}) {
+
+    return (
+
+        <div style={styles.statCard}>
+
+            <span style={styles.statTitle}>
+                {title}
+            </span>
+
+            <strong style={styles.statNumber}>
+                {value}
+            </strong>
+
+        </div>
+
+    );
+
+}
+
+
+// ========================================
+// ANALYTICS BAR
+// ========================================
+
+function AnalyticsBar({
+    label,
+    value,
+    max
+}) {
+
+    const width =
+        max > 0
+            ? `${(value / max) * 100}%`
+            : "0%";
+
+
+    return (
+
+        <div style={styles.barContainer}>
+
+            <div style={styles.barHeader}>
+
+                <span>
+                    {label}
+                </span>
+
+                <strong>
+                    {value}
+                </strong>
+
+            </div>
+
+
+            <div style={styles.barBackground}>
+
+                <div
+                    style={{
+                        ...styles.barFill,
+                        width
+                    }}
+                />
+
+            </div>
+
+        </div>
+
+    );
+
+}
+
+
+// ========================================
+// WORKLOAD STAT
+// ========================================
+
+function WorkloadStat({
+    label,
+    value
+}) {
+
+    return (
+
+        <div style={styles.workloadStat}>
+
+            <strong>
+                {value}
+            </strong>
+
+            <span>
+                {label}
+            </span>
+
+        </div>
+
+    );
+
+}
+
+
+// ========================================
+// STATUS BACKGROUND
+// ========================================
+
+function getStatusBackground(status) {
 
     if (status === "open") {
         return "#fee2e2";
@@ -631,9 +1644,9 @@ function getStatusColor(status) {
 }
 
 
-// =========================================
+// ========================================
 // STYLES
-// =========================================
+// ========================================
 
 const styles = {
 
@@ -643,6 +1656,7 @@ const styles = {
         color: "#1f2937"
     },
 
+
     center: {
         minHeight: "100vh",
         display: "flex",
@@ -650,6 +1664,7 @@ const styles = {
         alignItems: "center",
         background: "#f5f7fb"
     },
+
 
     loadingCard: {
         background: "white",
@@ -659,6 +1674,7 @@ const styles = {
         boxShadow:
             "0 10px 30px rgba(0,0,0,0.08)"
     },
+
 
     navbar: {
         minHeight: "70px",
@@ -671,11 +1687,24 @@ const styles = {
             "0 2px 10px rgba(0,0,0,0.05)"
     },
 
+
+    logo: {
+        margin: 0,
+        fontSize: "24px"
+    },
+
+
+    subtitle: {
+        color: "#6b7280"
+    },
+
+
     navRight: {
         display: "flex",
         alignItems: "center",
         gap: "20px"
     },
+
 
     adminInfo: {
         display: "flex",
@@ -683,6 +1712,7 @@ const styles = {
         alignItems: "flex-end",
         gap: "3px"
     },
+
 
     logoutButton: {
         padding: "10px 20px",
@@ -694,48 +1724,376 @@ const styles = {
         fontWeight: "600"
     },
 
+
     container: {
         maxWidth: "1200px",
         margin: "auto",
         padding: "40px 25px"
     },
 
+
     header: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
         marginBottom: "25px"
     },
 
-    stats: {
+
+    heading: {
+        margin: 0,
+        fontSize: "32px"
+    },
+
+
+    headerText: {
+        color: "#6b7280",
+        marginTop: "8px"
+    },
+
+
+    // ========================================
+    // STATS
+    // ========================================
+
+    statsGrid: {
+        display: "grid",
+        gridTemplateColumns:
+            "repeat(auto-fit, minmax(170px, 1fr))",
+        gap: "15px",
+        marginBottom: "25px"
+    },
+
+
+    statCard: {
         background: "white",
-        padding: "20px 35px",
+        padding: "20px",
         borderRadius: "12px",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
+        gap: "8px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.06)"
+            "0 5px 20px rgba(0,0,0,0.05)"
     },
 
-    agentInfo: {
-        display: "inline-flex",
-        gap: "10px",
-        padding: "10px 15px",
-        background: "white",
-        borderRadius: "8px",
-        boxShadow:
-            "0 3px 12px rgba(0,0,0,0.05)"
+
+    statTitle: {
+        color: "#6b7280",
+        fontSize: "14px"
     },
+
+
+    statNumber: {
+        fontSize: "28px"
+    },
+
 
     message: {
-        padding: "15px",
-        margin: "20px 0",
+        padding: "14px",
+        marginBottom: "20px",
         background: "#dcfce7",
         color: "#166534",
         borderRadius: "8px",
         textAlign: "center"
     },
+
+
+    // ========================================
+    // ANALYTICS
+    // ========================================
+
+    analyticsSection: {
+        marginBottom: "35px"
+    },
+
+
+    analyticsHeader: {
+        marginBottom: "18px"
+    },
+
+
+    analyticsTitle: {
+        margin: 0,
+        fontSize: "24px"
+    },
+
+
+    analyticsSubtitle: {
+        margin: "6px 0 0",
+        color: "#6b7280"
+    },
+
+
+    analyticsGrid: {
+        display: "grid",
+        gridTemplateColumns:
+            "repeat(auto-fit, minmax(350px, 1fr))",
+        gap: "20px",
+        marginBottom: "20px"
+    },
+
+
+    analyticsCard: {
+        background: "white",
+        padding: "25px",
+        borderRadius: "14px",
+        boxShadow:
+            "0 5px 20px rgba(0,0,0,0.05)"
+    },
+
+
+    cardDescription: {
+        color: "#6b7280",
+        marginTop: "5px",
+        fontSize: "14px"
+    },
+
+
+    barContainer: {
+        marginTop: "22px"
+    },
+
+
+    barHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: "7px",
+        fontSize: "14px"
+    },
+
+
+    barBackground: {
+        height: "9px",
+        background: "#e5e7eb",
+        borderRadius: "20px",
+        overflow: "hidden"
+    },
+
+
+    barFill: {
+        height: "100%",
+        background: "#4f46e5",
+        borderRadius: "20px",
+        transition: "width 0.4s ease"
+    },
+
+
+    // ========================================
+    // AGENT WORKLOAD
+    // ========================================
+
+    workloadCard: {
+        background: "white",
+        padding: "25px",
+        borderRadius: "14px",
+        boxShadow:
+            "0 5px 20px rgba(0,0,0,0.05)"
+    },
+
+
+    workloadHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "20px",
+        marginBottom: "20px"
+    },
+
+
+    agentCount: {
+        padding: "7px 12px",
+        background: "#ede9fe",
+        color: "#6d28d9",
+        borderRadius: "20px",
+        fontSize: "12px",
+        fontWeight: "600"
+    },
+
+
+    workloadGrid: {
+        display: "grid",
+        gridTemplateColumns:
+            "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: "15px"
+    },
+
+
+    agentCard: {
+        padding: "20px",
+        border: "1px solid #e5e7eb",
+        borderRadius: "12px"
+    },
+
+
+    agentTop: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "10px"
+    },
+
+
+    agentName: {
+        margin: 0,
+        fontSize: "17px"
+    },
+
+
+    agentDepartment: {
+        color: "#6b7280",
+        display: "block",
+        marginTop: "4px"
+    },
+
+
+    activeBadge: {
+        padding: "5px 9px",
+        background: "#fef3c7",
+        color: "#92400e",
+        borderRadius: "15px",
+        fontSize: "11px",
+        fontWeight: "600",
+        whiteSpace: "nowrap"
+    },
+
+
+    workloadStats: {
+        display: "grid",
+        gridTemplateColumns:
+            "repeat(3, 1fr)",
+        gap: "8px",
+        marginTop: "20px"
+    },
+
+
+    workloadStat: {
+        background: "#f9fafb",
+        padding: "12px 6px",
+        borderRadius: "8px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "4px"
+    },
+
+
+    workloadProgress: {
+        height: "7px",
+        background: "#e5e7eb",
+        borderRadius: "10px",
+        overflow: "hidden",
+        marginTop: "18px"
+    },
+
+
+    progressFill: {
+        height: "100%",
+        background: "#4f46e5",
+        borderRadius: "10px",
+        transition: "width 0.4s ease"
+    },
+
+
+    progressText: {
+        display: "block",
+        color: "#9ca3af",
+        marginTop: "6px"
+    },
+
+
+    noWorkload: {
+        padding: "25px",
+        textAlign: "center",
+        color: "#6b7280",
+        background: "#f9fafb",
+        borderRadius: "10px"
+    },
+
+
+    // ========================================
+    // FILTERS
+    // ========================================
+
+    filterCard: {
+        background: "white",
+        padding: "25px",
+        borderRadius: "14px",
+        marginBottom: "30px",
+        boxShadow:
+            "0 5px 20px rgba(0,0,0,0.05)"
+    },
+
+
+    filterHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "20px",
+        marginBottom: "20px"
+    },
+
+
+    filterSubtext: {
+        color: "#6b7280",
+        margin: "6px 0 0"
+    },
+
+
+    searchInput: {
+        width: "100%",
+        boxSizing: "border-box",
+        padding: "13px",
+        border:
+            "1px solid #d1d5db",
+        borderRadius: "8px",
+        fontSize: "14px",
+        marginBottom: "15px"
+    },
+
+
+    filters: {
+        display: "grid",
+        gridTemplateColumns:
+            "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: "12px"
+    },
+
+
+    select: {
+        width: "100%",
+        padding: "11px",
+        border:
+            "1px solid #d1d5db",
+        borderRadius: "8px",
+        background: "white",
+        cursor: "pointer",
+        boxSizing: "border-box"
+    },
+
+
+    clearButton: {
+        padding: "10px 15px",
+        border:
+            "1px solid #d1d5db",
+        borderRadius: "8px",
+        background: "white",
+        cursor: "pointer",
+        fontWeight: "600"
+    },
+
+
+    resultCount: {
+        marginTop: "18px",
+        color: "#6b7280",
+        fontSize: "14px"
+    },
+
+
+    // ========================================
+    // TICKETS
+    // ========================================
+
+    sectionTitle: {
+        marginBottom: "20px"
+    },
+
 
     grid: {
         display: "grid",
@@ -743,6 +2101,7 @@ const styles = {
             "repeat(auto-fit, minmax(400px, 1fr))",
         gap: "20px"
     },
+
 
     ticket: {
         background: "white",
@@ -752,12 +2111,14 @@ const styles = {
             "0 5px 20px rgba(0,0,0,0.06)"
     },
 
+
     ticketTop: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
         gap: "15px"
     },
+
 
     status: {
         height: "fit-content",
@@ -768,16 +2129,19 @@ const styles = {
         whiteSpace: "nowrap"
     },
 
+
     description: {
         color: "#6b7280",
         lineHeight: "1.6"
     },
+
 
     tags: {
         display: "flex",
         gap: "10px",
         margin: "15px 0"
     },
+
 
     category: {
         background: "#ede9fe",
@@ -787,6 +2151,7 @@ const styles = {
         fontSize: "12px"
     },
 
+
     priority: {
         background: "#fee2e2",
         color: "#b91c1c",
@@ -794,6 +2159,7 @@ const styles = {
         borderRadius: "6px",
         fontSize: "12px"
     },
+
 
     infoRow: {
         display: "flex",
@@ -803,12 +2169,14 @@ const styles = {
         fontSize: "14px"
     },
 
+
     assignment: {
         marginTop: "20px",
         padding: "18px",
         background: "#f9fafb",
         borderRadius: "10px"
     },
+
 
     currentAgent: {
         marginTop: "10px",
@@ -821,10 +2189,11 @@ const styles = {
         gap: "3px"
     },
 
+
     notAssigned: {
-        color: "#6b7280",
-        margin: "8px 0 15px"
+        color: "#6b7280"
     },
+
 
     label: {
         display: "block",
@@ -834,21 +2203,13 @@ const styles = {
         fontWeight: "600"
     },
 
-    select: {
-        width: "100%",
-        padding: "11px",
-        borderRadius: "8px",
-        border: "1px solid #d1d5db",
-        background: "white",
-        cursor: "pointer",
-        boxSizing: "border-box"
-    },
 
     assigningText: {
         display: "block",
         marginTop: "8px",
         color: "#6b7280"
     },
+
 
     aiBox: {
         marginTop: "20px",
@@ -857,12 +2218,14 @@ const styles = {
         borderRadius: "10px"
     },
 
+
     empty: {
         background: "white",
         padding: "50px",
         textAlign: "center",
         borderRadius: "12px"
     },
+
 
     refreshButton: {
         marginTop: "15px",
@@ -873,6 +2236,8 @@ const styles = {
         color: "white",
         cursor: "pointer"
     }
+
 };
+
 
 export default AdminDashboard;

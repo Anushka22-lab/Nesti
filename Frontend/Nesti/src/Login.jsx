@@ -1,12 +1,18 @@
 import { useState } from "react";
 import api from "./services/api";
 
-function Login({ onLogin }) {
+function Login({ onLogin, onRegister }) {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+
+    // ========================================
+    // LOGIN
+    // ========================================
 
     const handleLogin = async (e) => {
 
@@ -17,24 +23,47 @@ function Login({ onLogin }) {
 
         try {
 
-            const response = await api.post("/auth/login", {
-                email,
-                password
-            });
+            const response = await api.post(
+                "/auth/login",
+                {
+                    email: email.trim(),
+                    password
+                }
+            );
 
-            console.log("Login response:", response.data);
+            console.log(
+                "Login response:",
+                response.data
+            );
 
-            // Get logged-in user
-            const me = await api.get("/auth/me");
 
-            onLogin(me.data.user);
+            // Login API already returns user
+            const loggedInUser =
+                response.data.user;
+
+
+            if (!loggedInUser) {
+
+                throw new Error(
+                    "User information missing from login response"
+                );
+
+            }
+
+
+            onLogin(loggedInUser);
+
 
         } catch (error) {
 
-            console.log(error);
+            console.error(
+                "LOGIN ERROR:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
+                error.message ||
                 "Login failed"
             );
 
@@ -43,15 +72,24 @@ function Login({ onLogin }) {
             setLoading(false);
 
         }
+
     };
 
+
+    // ========================================
+    // UI
+    // ========================================
+
     return (
+
         <div style={styles.page}>
 
             <form
                 onSubmit={handleLogin}
                 style={styles.card}
             >
+
+                {/* LOGO */}
 
                 <h1 style={styles.logo}>
                     Nesti
@@ -61,105 +99,356 @@ function Login({ onLogin }) {
                     AI-powered customer support
                 </p>
 
+
+                {/* EMAIL */}
+
+                <label style={styles.label}>
+                    Email
+                </label>
+
                 <input
                     type="email"
-                    placeholder="Email"
+                    placeholder="you@example.com"
                     value={email}
                     onChange={(e) =>
                         setEmail(e.target.value)
                     }
                     style={styles.input}
+                    autoComplete="email"
                     required
                 />
 
+
+                {/* PASSWORD */}
+
+                <label style={styles.label}>
+                    Password
+                </label>
+
                 <input
                     type="password"
-                    placeholder="Password"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) =>
                         setPassword(e.target.value)
                     }
                     style={styles.input}
+                    autoComplete="current-password"
                     required
                 />
 
-                <button
-                    type="submit"
-                    style={styles.button}
-                    disabled={loading}
-                >
-                    {loading ? "Logging in..." : "Login"}
-                </button>
+
+                {/* ERROR */}
 
                 {error && (
-                    <p style={styles.error}>
+
+                    <div style={styles.error}>
                         {error}
-                    </p>
+                    </div>
+
                 )}
+
+
+                {/* LOGIN BUTTON */}
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                        ...styles.button,
+
+                        ...(loading
+                            ? styles.disabledButton
+                            : {})
+                    }}
+                >
+
+                    {loading
+                        ? "Logging in..."
+                        : "Login"}
+
+                </button>
+
+
+                {/* REGISTER */}
+
+                <div style={styles.registerSection}>
+
+                    <span style={styles.registerText}>
+                        Don't have an account?
+                    </span>
+
+
+                    <button
+                        type="button"
+                        onClick={() => {
+
+                            console.log(
+                                "Opening Register screen..."
+                            );
+
+                            setError("");
+
+                            if (typeof onRegister === "function") {
+
+                                onRegister();
+
+                            } else {
+
+                                console.error(
+                                    "onRegister prop is missing"
+                                );
+
+                            }
+
+                        }}
+                        style={styles.registerButton}
+                    >
+                        Create Account
+                    </button>
+
+                </div>
+
+
+                {/* INFO */}
+
+                <p style={styles.infoText}>
+                    New customers can create an account.
+                    Agent and Admin accounts are managed
+                    separately.
+                </p>
 
             </form>
 
         </div>
+
     );
+
 }
 
+
+// ========================================
+// STYLES
+// ========================================
 
 const styles = {
 
     page: {
+
         minHeight: "100vh",
+
         display: "flex",
+
         justifyContent: "center",
+
         alignItems: "center",
-        background: "#f5f7fb"
+
+        padding: "20px",
+
+        boxSizing: "border-box",
+
+        background: "#f5f7fb",
+
+        color: "#1f2937"
+
     },
+
 
     card: {
-        width: "360px",
-        padding: "40px",
+
+        width: "100%",
+
+        maxWidth: "440px",
+
+        padding: "42px",
+
+        boxSizing: "border-box",
+
         background: "white",
-        borderRadius: "16px",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
+
+        borderRadius: "18px",
+
+        boxShadow:
+            "0 15px 45px rgba(0,0,0,0.08)"
+
     },
+
 
     logo: {
+
+        margin: 0,
+
         textAlign: "center",
-        marginBottom: "5px"
+
+        fontSize: "32px",
+
+        fontWeight: "800",
+
+        letterSpacing: "-1px"
+
     },
+
 
     subtitle: {
+
+        marginTop: "8px",
+
+        marginBottom: "35px",
+
         textAlign: "center",
+
         color: "#6b7280",
-        marginBottom: "30px"
+
+        fontSize: "15px"
+
     },
+
+
+    label: {
+
+        display: "block",
+
+        marginBottom: "8px",
+
+        fontSize: "14px",
+
+        fontWeight: "600"
+
+    },
+
 
     input: {
+
         width: "100%",
-        padding: "13px",
-        marginBottom: "15px",
+
+        padding: "13px 14px",
+
+        marginBottom: "20px",
+
         boxSizing: "border-box",
+
         border: "1px solid #d1d5db",
-        borderRadius: "8px",
-        fontSize: "15px"
+
+        borderRadius: "9px",
+
+        fontSize: "15px",
+
+        outline: "none"
+
     },
+
 
     button: {
+
         width: "100%",
+
         padding: "13px",
+
         border: "none",
-        borderRadius: "8px",
+
+        borderRadius: "9px",
+
         background: "#111827",
+
         color: "white",
+
         fontSize: "15px",
+
+        fontWeight: "700",
+
         cursor: "pointer"
+
     },
 
+
+    disabledButton: {
+
+        opacity: 0.6,
+
+        cursor: "not-allowed"
+
+    },
+
+
     error: {
-        color: "#dc2626",
+
+        marginBottom: "15px",
+
+        padding: "11px 13px",
+
+        borderRadius: "8px",
+
+        background: "#fee2e2",
+
+        color: "#991b1b",
+
+        fontSize: "14px",
+
+        textAlign: "center"
+
+    },
+
+
+    registerSection: {
+
+        display: "flex",
+
+        justifyContent: "center",
+
+        alignItems: "center",
+
+        gap: "5px",
+
+        marginTop: "25px",
+
+        fontSize: "14px"
+
+    },
+
+
+    registerText: {
+
+        color: "#6b7280"
+
+    },
+
+
+    registerButton: {
+
+        padding: 0,
+
+        border: "none",
+
+        background: "transparent",
+
+        color: "#4f46e5",
+
+        fontSize: "14px",
+
+        fontWeight: "700",
+
+        cursor: "pointer"
+
+    },
+
+
+    infoText: {
+
+        marginTop: "25px",
+
+        marginBottom: 0,
+
         textAlign: "center",
-        marginTop: "15px"
+
+        color: "#9ca3af",
+
+        fontSize: "12px",
+
+        lineHeight: "1.5"
+
     }
 
 };
+
 
 export default Login;
