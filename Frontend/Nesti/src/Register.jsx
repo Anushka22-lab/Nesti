@@ -3,8 +3,10 @@ import api from "./services/api";
 
 
 function Register({
+    role,
     onRegisterSuccess,
-    onGoToLogin
+    onGoToLogin,
+    onBack
 }) {
 
     const [name, setName] = useState("");
@@ -19,6 +21,17 @@ function Register({
 
 
     // ========================================
+    // ROLE NAME
+    // ========================================
+
+    const roleName =
+        role
+            ? role.charAt(0).toUpperCase() +
+              role.slice(1)
+            : "User";
+
+
+    // ========================================
     // REGISTER
     // ========================================
 
@@ -30,9 +43,9 @@ function Register({
         setSuccess("");
 
 
-        // ====================================
+        // ========================================
         // VALIDATION
-        // ====================================
+        // ========================================
 
         if (!name.trim()) {
 
@@ -67,10 +80,7 @@ function Register({
         }
 
 
-        if (
-            password !==
-            confirmPassword
-        ) {
+        if (password !== confirmPassword) {
 
             setError(
                 "Passwords do not match."
@@ -86,15 +96,9 @@ function Register({
             setLoading(true);
 
 
-            // ====================================
-            // IMPORTANT
-            //
-            // DO NOT SEND:
-            // role
-            // department
-            //
-            // Backend creates CUSTOMER.
-            // ====================================
+            // ========================================
+            // REGISTER
+            // ========================================
 
             const response =
                 await api.post(
@@ -108,7 +112,9 @@ function Register({
                                 .trim()
                                 .toLowerCase(),
 
-                        password
+                        password,
+
+                        role
                     }
                 );
 
@@ -120,9 +126,11 @@ function Register({
 
 
             setSuccess(
-                "Account created successfully! 🎉"
+                `${roleName} account created successfully! 🎉`
             );
 
+
+            // Clear form
 
             setName("");
             setEmail("");
@@ -130,19 +138,15 @@ function Register({
             setConfirmPassword("");
 
 
-            // ====================================
+            // ========================================
             // GO TO LOGIN
-            // ====================================
+            // ========================================
 
             setTimeout(() => {
 
                 if (onRegisterSuccess) {
 
                     onRegisterSuccess();
-
-                } else if (onGoToLogin) {
-
-                    onGoToLogin();
 
                 }
 
@@ -158,13 +162,9 @@ function Register({
 
 
             setError(
-
                 err.response?.data?.message ||
-
                 "Registration failed. Please try again."
-
             );
-
 
         } finally {
 
@@ -175,6 +175,10 @@ function Register({
     };
 
 
+    // ========================================
+    // UI
+    // ========================================
+
     return (
 
         <div style={styles.page}>
@@ -184,56 +188,40 @@ function Register({
                 style={styles.card}
             >
 
-                {/* ================================= */}
                 {/* LOGO */}
-                {/* ================================= */}
 
-                <div style={styles.logoSection}>
+                <h1 style={styles.logo}>
+                    Nesti
+                </h1>
 
-                    <h1 style={styles.logo}>
-                        Nesti
-                    </h1>
-
-                    <p style={styles.subtitle}>
-                        Create your customer account
-                    </p>
-
-                </div>
+                <p style={styles.subtitle}>
+                    Create {roleName} Account
+                </p>
 
 
-                {/* ================================= */}
                 {/* ERROR */}
-                {/* ================================= */}
 
                 {error && (
 
                     <div style={styles.error}>
-
                         {error}
-
                     </div>
 
                 )}
 
 
-                {/* ================================= */}
                 {/* SUCCESS */}
-                {/* ================================= */}
 
                 {success && (
 
                     <div style={styles.success}>
-
                         {success}
-
                     </div>
 
                 )}
 
 
-                {/* ================================= */}
                 {/* NAME */}
-                {/* ================================= */}
 
                 <label style={styles.label}>
                     Full Name
@@ -241,12 +229,10 @@ function Register({
 
                 <input
                     type="text"
-                    placeholder="Rahul Sharma"
+                    placeholder="Your name"
                     value={name}
                     onChange={(e) =>
-                        setName(
-                            e.target.value
-                        )
+                        setName(e.target.value)
                     }
                     style={styles.input}
                     disabled={loading}
@@ -255,9 +241,7 @@ function Register({
                 />
 
 
-                {/* ================================= */}
                 {/* EMAIL */}
-                {/* ================================= */}
 
                 <label style={styles.label}>
                     Email
@@ -268,9 +252,7 @@ function Register({
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) =>
-                        setEmail(
-                            e.target.value
-                        )
+                        setEmail(e.target.value)
                     }
                     style={styles.input}
                     disabled={loading}
@@ -279,9 +261,7 @@ function Register({
                 />
 
 
-                {/* ================================= */}
                 {/* PASSWORD */}
-                {/* ================================= */}
 
                 <label style={styles.label}>
                     Password
@@ -292,9 +272,7 @@ function Register({
                     placeholder="Minimum 6 characters"
                     value={password}
                     onChange={(e) =>
-                        setPassword(
-                            e.target.value
-                        )
+                        setPassword(e.target.value)
                     }
                     style={styles.input}
                     disabled={loading}
@@ -303,9 +281,7 @@ function Register({
                 />
 
 
-                {/* ================================= */}
                 {/* CONFIRM PASSWORD */}
-                {/* ================================= */}
 
                 <label style={styles.label}>
                     Confirm Password
@@ -316,9 +292,7 @@ function Register({
                     placeholder="Re-enter your password"
                     value={confirmPassword}
                     onChange={(e) =>
-                        setConfirmPassword(
-                            e.target.value
-                        )
+                        setConfirmPassword(e.target.value)
                     }
                     style={styles.input}
                     disabled={loading}
@@ -327,9 +301,7 @@ function Register({
                 />
 
 
-                {/* ================================= */}
                 {/* CREATE ACCOUNT */}
-                {/* ================================= */}
 
                 <button
                     type="submit"
@@ -345,35 +317,24 @@ function Register({
 
                     {loading
                         ? "Creating Account..."
-                        : "Create Account"}
+                        : `Create ${roleName} Account`}
 
                 </button>
 
 
-                {/* ================================= */}
                 {/* LOGIN */}
-                {/* ================================= */}
 
-                <div
-                    style={
-                        styles.loginSection
-                    }
-                >
+                <div style={styles.loginSection}>
 
-                    <span>
+                    <span style={styles.loginText}>
                         Already have an account?
                     </span>
 
-
                     <button
                         type="button"
-                        onClick={
-                            onGoToLogin
-                        }
-                        style={
-                            styles.loginButton
-                        }
+                        onClick={onGoToLogin}
                         disabled={loading}
+                        style={styles.loginButton}
                     >
                         Login
                     </button>
@@ -381,18 +342,16 @@ function Register({
                 </div>
 
 
-                {/* ================================= */}
-                {/* SECURITY */}
-                {/* ================================= */}
+                {/* BACK */}
 
-                <p style={styles.securityText}>
-
-                    Public registration creates
-                    customer accounts only.
-                    Agent and Admin accounts are
-                    managed separately.
-
-                </p>
+                <button
+                    type="button"
+                    onClick={onBack}
+                    disabled={loading}
+                    style={styles.backButton}
+                >
+                    ← Back to role selection
+                </button>
 
             </form>
 
@@ -403,9 +362,9 @@ function Register({
 }
 
 
-// ======================================================
+// ========================================
 // STYLES
-// ======================================================
+// ========================================
 
 const styles = {
 
@@ -423,7 +382,9 @@ const styles = {
 
         boxSizing: "border-box",
 
-        background: "#f5f7fb"
+        background: "#f5f7fb",
+
+        color: "#111827"
 
     },
 
@@ -448,33 +409,30 @@ const styles = {
     },
 
 
-    logoSection: {
-
-        textAlign: "center",
-
-        marginBottom: "28px"
-
-    },
-
-
     logo: {
 
         margin: 0,
 
+        textAlign: "center",
+
         fontSize: "32px",
 
-        color: "#111827"
+        fontWeight: "800",
+
+        letterSpacing: "-1px"
 
     },
 
 
     subtitle: {
 
-        margin: "8px 0 0",
+        margin: "8px 0 28px",
+
+        textAlign: "center",
 
         color: "#6b7280",
 
-        fontSize: "14px"
+        fontSize: "15px"
 
     },
 
@@ -483,9 +441,9 @@ const styles = {
 
         display: "block",
 
-        marginBottom: "7px",
+        marginTop: "15px",
 
-        marginTop: "16px",
+        marginBottom: "7px",
 
         fontSize: "14px",
 
@@ -500,12 +458,11 @@ const styles = {
 
         width: "100%",
 
-        boxSizing: "border-box",
-
         padding: "13px 14px",
 
-        border:
-            "1px solid #d1d5db",
+        boxSizing: "border-box",
+
+        border: "1px solid #d1d5db",
 
         borderRadius: "9px",
 
@@ -534,7 +491,7 @@ const styles = {
 
         fontSize: "15px",
 
-        fontWeight: "600",
+        fontWeight: "700",
 
         cursor: "pointer"
 
@@ -596,7 +553,12 @@ const styles = {
 
         marginTop: "22px",
 
-        fontSize: "14px",
+        fontSize: "14px"
+
+    },
+
+
+    loginText: {
 
         color: "#6b7280"
 
@@ -605,32 +567,40 @@ const styles = {
 
     loginButton: {
 
+        padding: 0,
+
         border: "none",
 
-        background: "none",
+        background: "transparent",
 
         color: "#4f46e5",
 
-        fontWeight: "600",
+        fontWeight: "700",
 
         cursor: "pointer",
 
-        padding: 0
+        fontSize: "14px"
 
     },
 
 
-    securityText: {
+    backButton: {
 
-        marginTop: "22px",
+        display: "block",
 
-        textAlign: "center",
+        margin: "20px auto 0",
 
-        color: "#9ca3af",
+        padding: 0,
 
-        fontSize: "12px",
+        border: "none",
 
-        lineHeight: "1.5"
+        background: "transparent",
+
+        color: "#6b7280",
+
+        fontSize: "13px",
+
+        cursor: "pointer"
 
     }
 

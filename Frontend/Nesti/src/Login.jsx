@@ -1,13 +1,30 @@
 import { useState } from "react";
 import api from "./services/api";
 
-function Login({ onLogin, onRegister }) {
+
+function Login({
+    role,
+    onLogin,
+    onRegister,
+    onBack
+}) {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+
+    // ========================================
+    // ROLE NAME
+    // ========================================
+
+    const roleName =
+        role
+            ? role.charAt(0).toUpperCase() +
+              role.slice(1)
+            : "User";
 
 
     // ========================================
@@ -23,13 +40,19 @@ function Login({ onLogin, onRegister }) {
 
         try {
 
-            const response = await api.post(
-                "/auth/login",
-                {
-                    email: email.trim(),
-                    password
-                }
-            );
+            const response =
+                await api.post(
+                    "/auth/login",
+                    {
+                        email:
+                            email
+                                .trim()
+                                .toLowerCase(),
+
+                        password
+                    }
+                );
+
 
             console.log(
                 "Login response:",
@@ -37,7 +60,6 @@ function Login({ onLogin, onRegister }) {
             );
 
 
-            // Login API already returns user
             const loggedInUser =
                 response.data.user;
 
@@ -51,6 +73,25 @@ function Login({ onLogin, onRegister }) {
             }
 
 
+            // ========================================
+            // CHECK SELECTED ROLE
+            // ========================================
+
+            if (
+                loggedInUser.role !== role
+            ) {
+
+                throw new Error(
+                    `This account is not registered as a ${roleName}.`
+                );
+
+            }
+
+
+            // ========================================
+            // LOGIN SUCCESS
+            // ========================================
+
             onLogin(loggedInUser);
 
 
@@ -60,6 +101,7 @@ function Login({ onLogin, onRegister }) {
                 "LOGIN ERROR:",
                 error
             );
+
 
             setError(
                 error.response?.data?.message ||
@@ -96,7 +138,7 @@ function Login({ onLogin, onRegister }) {
                 </h1>
 
                 <p style={styles.subtitle}>
-                    AI-powered customer support
+                    {roleName} Login
                 </p>
 
 
@@ -115,6 +157,7 @@ function Login({ onLogin, onRegister }) {
                     }
                     style={styles.input}
                     autoComplete="email"
+                    disabled={loading}
                     required
                 />
 
@@ -134,6 +177,7 @@ function Login({ onLogin, onRegister }) {
                     }
                     style={styles.input}
                     autoComplete="current-password"
+                    disabled={loading}
                     required
                 />
 
@@ -165,7 +209,7 @@ function Login({ onLogin, onRegister }) {
 
                     {loading
                         ? "Logging in..."
-                        : "Login"}
+                        : `Login as ${roleName}`}
 
                 </button>
 
@@ -178,45 +222,28 @@ function Login({ onLogin, onRegister }) {
                         Don't have an account?
                     </span>
 
-
                     <button
                         type="button"
-                        onClick={() => {
-
-                            console.log(
-                                "Opening Register screen..."
-                            );
-
-                            setError("");
-
-                            if (typeof onRegister === "function") {
-
-                                onRegister();
-
-                            } else {
-
-                                console.error(
-                                    "onRegister prop is missing"
-                                );
-
-                            }
-
-                        }}
+                        onClick={onRegister}
+                        disabled={loading}
                         style={styles.registerButton}
                     >
-                        Create Account
+                        Register
                     </button>
 
                 </div>
 
 
-                {/* INFO */}
+                {/* BACK */}
 
-                <p style={styles.infoText}>
-                    New customers can create an account.
-                    Agent and Admin accounts are managed
-                    separately.
-                </p>
+                <button
+                    type="button"
+                    onClick={onBack}
+                    disabled={loading}
+                    style={styles.backButton}
+                >
+                    ← Back to role selection
+                </button>
 
             </form>
 
@@ -432,19 +459,23 @@ const styles = {
     },
 
 
-    infoText: {
+    backButton: {
 
-        marginTop: "25px",
+        display: "block",
 
-        marginBottom: 0,
+        margin: "22px auto 0",
 
-        textAlign: "center",
+        padding: 0,
 
-        color: "#9ca3af",
+        border: "none",
 
-        fontSize: "12px",
+        background: "transparent",
 
-        lineHeight: "1.5"
+        color: "#6b7280",
+
+        fontSize: "13px",
+
+        cursor: "pointer"
 
     }
 

@@ -85,6 +85,17 @@ const ticketSchema = new mongoose.Schema(
 
 
         // ========================================
+        // AI DETECTED RECURRING ISSUE
+        // ========================================
+
+        detectedIssue: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Issue",
+            default: null
+        },
+
+
+        // ========================================
         // AI ANALYSIS
         // ========================================
 
@@ -108,6 +119,27 @@ const ticketSchema = new mongoose.Schema(
 
             suggestedDepartment: {
                 type: String
+            },
+
+            // ========================================
+            // AI RECOMMENDED SOLUTION
+            // ========================================
+
+            recommendedSolution: {
+                type: String
+            },
+
+            recommendedAction: {
+                type: String
+            },
+
+            solutionConfidence: {
+                type: String,
+                enum: [
+                    "low",
+                    "medium",
+                    "high"
+                ]
             }
 
         },

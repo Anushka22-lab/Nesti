@@ -20,19 +20,110 @@ const registerUser = async (req, res) => {
         } = req.body;
 
 
+        // ========================================
+        // VALIDATION
+        // ========================================
+
+        if (
+            !name ||
+            !email ||
+            !password
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Name, email and password are required"
+
+            });
+
+        }
+
+
+        if (password.length < 6) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Password must be at least 6 characters"
+
+            });
+
+        }
+
+
+        // ========================================
+        // NORMALIZE EMAIL
+        // ========================================
+
+        const normalizedEmail =
+            email.trim().toLowerCase();
+
+
+        // ========================================
+        // CHECK EXISTING USER
+        // ========================================
+
         const existingUser =
-            await userModel.findOne({ email });
+            await userModel.findOne({
+                email: normalizedEmail
+            });
 
 
         if (existingUser) {
 
             return res.status(400).json({
+
                 success: false,
-                message: "User already exists"
+
+                message:
+                    "User already exists"
+
             });
 
         }
 
+
+        // ========================================
+        // VALIDATE ROLE
+        // ========================================
+
+        const allowedRoles = [
+            "customer",
+            "agent",
+            "admin"
+        ];
+
+
+        const selectedRole =
+            role || "customer";
+
+
+        if (
+            !allowedRoles.includes(
+                selectedRole
+            )
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Invalid user role"
+
+            });
+
+        }
+
+
+        // ========================================
+        // HASH PASSWORD
+        // ========================================
 
         const hashedPassword =
             await bcrypt.hash(
@@ -41,31 +132,42 @@ const registerUser = async (req, res) => {
             );
 
 
+        // ========================================
+        // CREATE USER
+        // ========================================
+
         const user =
             await userModel.create({
 
-                name,
+                name:
+                    name.trim(),
 
-                email,
+                email:
+                    normalizedEmail,
 
                 password:
                     hashedPassword,
 
                 role:
-                    role || "customer",
+                    selectedRole,
 
                 department:
-                    department || "General Support"
+                    department ||
+                    "General Support"
 
             });
 
+
+        // ========================================
+        // RESPONSE
+        // ========================================
 
         return res.status(201).json({
 
             success: true,
 
             message:
-                "User registered successfully",
+                `${selectedRole} account registered successfully`,
 
             user: {
 
@@ -125,9 +227,39 @@ const loginUser = async (req, res) => {
         } = req.body;
 
 
+        // ========================================
+        // VALIDATION
+        // ========================================
+
+        if (
+            !email ||
+            !password
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Email and password are required"
+
+            });
+
+        }
+
+
+        // ========================================
+        // FIND USER
+        // ========================================
+
         const user =
             await userModel.findOne({
-                email
+
+                email:
+                    email
+                        .trim()
+                        .toLowerCase()
+
             });
 
 
@@ -144,6 +276,10 @@ const loginUser = async (req, res) => {
 
         }
 
+
+        // ========================================
+        // CHECK PASSWORD
+        // ========================================
 
         const isPasswordCorrect =
             await bcrypt.compare(
@@ -174,6 +310,7 @@ const loginUser = async (req, res) => {
             jwt.sign(
 
                 {
+
                     id:
                         user._id.toString(),
 
@@ -185,15 +322,17 @@ const loginUser = async (req, res) => {
                 process.env.JWT_SECRET,
 
                 {
+
                     expiresIn:
                         "7d"
+
                 }
 
             );
 
 
         // ========================================
-        // SAVE JWT IN HTTP-ONLY COOKIE
+        // SAVE JWT COOKIE
         // ========================================
 
         res.cookie(
@@ -210,7 +349,11 @@ const loginUser = async (req, res) => {
                 path: "/",
 
                 maxAge:
-                    7 * 24 * 60 * 60 * 1000
+                    7 *
+                    24 *
+                    60 *
+                    60 *
+                    1000
 
             }
         );
@@ -227,8 +370,6 @@ const loginUser = async (req, res) => {
             message:
                 "Login successful",
 
-            // Used by Socket.IO
-            // Frontend keeps this only in memory
             token,
 
             user: {
@@ -318,6 +459,12 @@ const getCurrentUser = async (req, res) => {
 
     } catch (error) {
 
+        console.error(
+            "CURRENT USER ERROR:",
+            error
+        );
+
+
         return res.status(500).json({
 
             success: false,
@@ -331,6 +478,10 @@ const getCurrentUser = async (req, res) => {
 
 };
 
+
+// ========================================
+// EXPORTS
+// ========================================
 
 module.exports = {
 

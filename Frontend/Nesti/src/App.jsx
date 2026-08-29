@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import api from "./services/api";
 
+import RoleSelection from "./RoleSelection";
 import Login from "./Login";
 import Register from "./Register";
 
@@ -13,11 +14,30 @@ import AdminDashboard from "./AdminDashboard";
 function App() {
 
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
 
-    // "login" or "register"
+    const [loading, setLoading] =
+        useState(true);
+
+
+    // ========================================
+    // AUTH SCREEN
+    // ========================================
+    //
+    // role     = first screen
+    // login    = login page
+    // register = registration page
+    //
+
     const [authScreen, setAuthScreen] =
-        useState("login");
+        useState("role");
+
+
+    // ========================================
+    // SELECTED ROLE
+    // ========================================
+
+    const [selectedRole, setSelectedRole] =
+        useState(null);
 
 
     // ========================================
@@ -58,6 +78,7 @@ function App() {
 
         };
 
+
         checkLogin();
 
     }, []);
@@ -80,15 +101,61 @@ function App() {
 
 
     // ========================================
+    // SELECT ROLE
+    // ========================================
+
+    const handleSelectRole = (role) => {
+
+        console.log(
+            "Selected role:",
+            role
+        );
+
+        setSelectedRole(role);
+
+        setAuthScreen("login");
+
+    };
+
+
+    // ========================================
+    // GO TO REGISTER
+    // ========================================
+
+    const handleGoToRegister = () => {
+
+        setAuthScreen("register");
+
+    };
+
+
+    // ========================================
+    // GO TO LOGIN
+    // ========================================
+
+    const handleGoToLogin = () => {
+
+        setAuthScreen("login");
+
+    };
+
+
+    // ========================================
+    // BACK TO ROLE SELECTION
+    // ========================================
+
+    const handleBackToRoles = () => {
+
+        setSelectedRole(null);
+
+        setAuthScreen("role");
+
+    };
+
+
+    // ========================================
     // REGISTRATION SUCCESS
     // ========================================
-    // Register.jsx should call this after
-    // successful customer registration.
-    //
-    // We intentionally DO NOT automatically
-    // log the customer in here.
-    //
-    // User is sent back to Login screen.
 
     const handleRegisterSuccess = () => {
 
@@ -105,14 +172,8 @@ function App() {
 
         try {
 
-            const response =
-                await api.post(
-                    "/auth/logout"
-                );
-
-            console.log(
-                "Logout response:",
-                response.data
+            await api.post(
+                "/auth/logout"
             );
 
         } catch (error) {
@@ -127,8 +188,9 @@ function App() {
 
             setUser(null);
 
-            // Always return to login screen
-            setAuthScreen("login");
+            setSelectedRole(null);
+
+            setAuthScreen("role");
 
         }
 
@@ -169,24 +231,22 @@ function App() {
 
 
     // ========================================
-    // NOT LOGGED IN
+    // LOGGED-IN USER
     // ========================================
 
-    if (!user) {
+    if (user) {
 
-        // -------------------------------
-        // LOGIN
-        // -------------------------------
+        // CUSTOMER
 
-        if (authScreen === "login") {
+        if (
+            user.role === "customer"
+        ) {
 
             return (
 
-                <Login
-                    onLogin={handleLogin}
-                    onRegister={() =>
-                        setAuthScreen("register")
-                    }
+                <CustomerDashboard
+                    user={user}
+                    onLogout={handleLogout}
                 />
 
             );
@@ -194,19 +254,169 @@ function App() {
         }
 
 
-        // -------------------------------
-        // REGISTER
-        // -------------------------------
+        // AGENT
+
+        if (
+            user.role === "agent"
+        ) {
+
+            return (
+
+                <AgentDashboard
+                    user={user}
+                    onLogout={handleLogout}
+                />
+
+            );
+
+        }
+
+
+        // ADMIN
+
+        if (
+            user.role === "admin"
+        ) {
+
+            return (
+
+                <AdminDashboard
+                    user={user}
+                    onLogout={handleLogout}
+                />
+
+            );
+
+        }
+
+
+        // UNKNOWN ROLE
+
+        return (
+
+            <div style={styles.center}>
+
+                <div style={styles.loadingCard}>
+
+                    <h2>
+                        Unknown User Role
+                    </h2>
+
+                    <p>
+                        Role:{" "}
+                        {user.role || "Unknown"}
+                    </p>
+
+                    <button
+                        onClick={handleLogout}
+                        style={styles.logoutButton}
+                    >
+                        Logout
+                    </button>
+
+                </div>
+
+            </div>
+
+        );
+
+    }
+
+
+    // ========================================
+    // ROLE SELECTION SCREEN
+    // ========================================
+
+    if (
+        authScreen === "role"
+    ) {
+
+        return (
+
+            <RoleSelection
+
+                onCustomer={() =>
+                    handleSelectRole(
+                        "customer"
+                    )
+                }
+
+                onAgent={() =>
+                    handleSelectRole(
+                        "agent"
+                    )
+                }
+
+                onAdmin={() =>
+                    handleSelectRole(
+                        "admin"
+                    )
+                }
+
+            />
+
+        );
+
+    }
+
+
+    // ========================================
+    // LOGIN SCREEN
+    // ========================================
+
+    if (
+        authScreen === "login"
+    ) {
+
+        return (
+
+            <Login
+
+                role={selectedRole}
+
+                onLogin={handleLogin}
+
+                onRegister={
+                    handleGoToRegister
+                }
+
+                onBack={
+                    handleBackToRoles
+                }
+
+            />
+
+        );
+
+    }
+
+
+    // ========================================
+    // REGISTER SCREEN
+    // ========================================
+
+    if (
+        authScreen === "register"
+    ) {
 
         return (
 
             <Register
+
+                role={selectedRole}
+
                 onRegisterSuccess={
                     handleRegisterSuccess
                 }
-                onLogin={() =>
-                    setAuthScreen("login")
+
+                onGoToLogin={
+                    handleGoToLogin
                 }
+
+                onBack={
+                    handleBackToRoles
+                }
+
             />
 
         );
@@ -214,94 +424,7 @@ function App() {
     }
 
 
-    // ========================================
-    // AGENT
-    // ========================================
-
-    if (user.role === "agent") {
-
-        return (
-
-            <AgentDashboard
-                user={user}
-                onLogout={handleLogout}
-            />
-
-        );
-
-    }
-
-
-    // ========================================
-    // CUSTOMER
-    // ========================================
-
-    if (user.role === "customer") {
-
-        return (
-
-            <CustomerDashboard
-                user={user}
-                onLogout={handleLogout}
-            />
-
-        );
-
-    }
-
-
-    // ========================================
-    // ADMIN
-    // ========================================
-
-    if (user.role === "admin") {
-
-        return (
-
-            <AdminDashboard
-                user={user}
-                onLogout={handleLogout}
-            />
-
-        );
-
-    }
-
-
-    // ========================================
-    // UNKNOWN ROLE
-    // ========================================
-
-    return (
-
-        <div style={styles.center}>
-
-            <div style={styles.loadingCard}>
-
-                <div style={styles.logo}>
-                    Nesti
-                </div>
-
-                <h2>
-                    Unknown User Role
-                </h2>
-
-                <p>
-                    Role: {user.role || "Unknown"}
-                </p>
-
-                <button
-                    onClick={handleLogout}
-                    style={styles.logoutButton}
-                >
-                    Logout
-                </button>
-
-            </div>
-
-        </div>
-
-    );
+    return null;
 
 }
 
@@ -334,6 +457,8 @@ const styles = {
         width: "360px",
 
         padding: "40px",
+
+        boxSizing: "border-box",
 
         background: "white",
 

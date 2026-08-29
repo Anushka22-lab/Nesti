@@ -226,52 +226,60 @@ function AgentDashboard({
                 setTickets(
                     (previousTickets) => {
 
-                        return previousTickets.map(
-                            (ticket) => {
+                        const updated =
+                            previousTickets.map(
+                                (ticket) => {
 
-                                if (
-                                    ticket._id !==
-                                    data.ticketId
-                                ) {
+                                    if (
+                                        ticket._id !==
+                                        data.ticketId
+                                    ) {
 
-                                    return ticket;
+                                        return ticket;
+
+                                    }
+
+
+                                    const comments =
+                                        ticket.comments ||
+                                        [];
+
+
+                                    const exists =
+                                        comments.some(
+                                            (comment) =>
+                                                comment._id ===
+                                                data.comment._id
+                                        );
+
+
+                                    if (exists) {
+
+                                        return ticket;
+
+                                    }
+
+
+                                    return {
+
+                                        ...ticket,
+
+                                        comments: [
+                                            ...comments,
+                                            data.comment
+                                        ]
+
+                                    };
 
                                 }
+                            );
 
 
-                                const comments =
-                                    ticket.comments ||
-                                    [];
+                        ticketsRef.current =
+                            updated;
 
 
-                                const exists =
-                                    comments.some(
-                                        (comment) =>
-                                            comment._id ===
-                                            data.comment._id
-                                    );
-
-
-                                if (exists) {
-
-                                    return ticket;
-
-                                }
-
-
-                                return {
-
-                                    ...ticket,
-
-                                    comments: [
-                                        ...comments,
-                                        data.comment
-                                    ]
-
-                                };
-
-                            }
-                        );
+                        return updated;
 
                     }
                 );
@@ -307,12 +315,16 @@ function AgentDashboard({
                                     ) {
 
                                         return {
+
                                             ...ticket,
+
                                             status:
                                                 data.status
+
                                         };
 
                                     }
+
 
                                     return ticket;
 
@@ -347,12 +359,102 @@ function AgentDashboard({
                 );
 
 
-                /*
-                 * If assignment changes,
-                 * refresh assigned tickets.
-                 */
-
                 fetchTickets();
+
+            }
+        );
+
+
+        // --------------------------------------------------
+        // NEW TICKET
+        // --------------------------------------------------
+
+        socket.on(
+            "ticketCreated",
+            (data) => {
+
+                console.log(
+                    "🎫 AGENT NEW TICKET:",
+                    data
+                );
+
+
+                if (
+                    !data ||
+                    !data.ticket
+                ) {
+
+                    return;
+
+                }
+
+
+                const newTicket =
+                    data.ticket;
+
+
+                setTickets(
+                    (previousTickets) => {
+
+                        const exists =
+                            previousTickets.some(
+                                (ticket) =>
+                                    ticket._id ===
+                                    newTicket._id
+                            );
+
+
+                        if (exists) {
+
+                            return previousTickets;
+
+                        }
+
+
+                        const updated = [
+
+                            newTicket,
+
+                            ...previousTickets
+
+                        ];
+
+
+                        ticketsRef.current =
+                            updated;
+
+
+                        return updated;
+
+                    }
+                );
+
+
+                // Join newly created ticket room
+
+                const socket =
+                    socketRef.current;
+
+
+                if (
+                    socket &&
+                    socket.connected &&
+                    !joinedTicketsRef.current.has(
+                        newTicket._id
+                    )
+                ) {
+
+                    socket.emit(
+                        "joinTicket",
+                        newTicket._id
+                    );
+
+
+                    joinedTicketsRef.current.add(
+                        newTicket._id
+                    );
+
+                }
 
             }
         );
@@ -387,6 +489,7 @@ function AgentDashboard({
                     "Agent socket disconnected:",
                     reason
                 );
+
 
                 joinedTicketsRef.current.clear();
 
@@ -501,38 +604,61 @@ function AgentDashboard({
             ) {
 
                 setTickets(
-                    (previousTickets) =>
+                    (previousTickets) => {
 
-                        previousTickets.map(
-                            (ticket) =>
+                        const updated =
+                            previousTickets.map(
+                                (ticket) =>
 
-                                ticket._id ===
-                                ticketId
+                                    ticket._id ===
+                                    ticketId
 
-                                    ? response.data.ticket
+                                        ? {
+                                            ...ticket,
+                                            ...response.data.ticket
+                                        }
 
-                                    : ticket
-                        )
+                                        : ticket
+                            );
+
+
+                        ticketsRef.current =
+                            updated;
+
+
+                        return updated;
+
+                    }
                 );
 
             } else {
 
                 setTickets(
-                    (previousTickets) =>
+                    (previousTickets) => {
 
-                        previousTickets.map(
-                            (ticket) =>
+                        const updated =
+                            previousTickets.map(
+                                (ticket) =>
 
-                                ticket._id ===
-                                ticketId
+                                    ticket._id ===
+                                    ticketId
 
-                                    ? {
-                                        ...ticket,
-                                        status
-                                    }
+                                        ? {
+                                            ...ticket,
+                                            status
+                                        }
 
-                                    : ticket
-                        )
+                                        : ticket
+                            );
+
+
+                        ticketsRef.current =
+                            updated;
+
+
+                        return updated;
+
+                    }
                 );
 
             }
@@ -555,6 +681,89 @@ function AgentDashboard({
             setUpdatingTicket(null);
 
         }
+
+    };
+
+
+    // ======================================================
+    // USE AI RECOMMENDATION ⭐
+    // ======================================================
+
+    const useAIRecommendation = (
+        ticket
+    ) => {
+
+        const recommendation =
+            ticket
+                ?.aiAnalysis
+                ?.recommendedSolution;
+
+
+        if (!recommendation) {
+
+            setError(
+                "AI recommendation is not available for this ticket."
+            );
+
+            return;
+
+        }
+
+
+        const action =
+            ticket
+                ?.aiAnalysis
+                ?.recommendedAction;
+
+
+        let reply =
+            recommendation.trim();
+
+
+        // --------------------------------------------------
+        // Add action context when available
+        // --------------------------------------------------
+
+        if (
+            action &&
+            action.trim()
+        ) {
+
+            reply =
+                `${reply}\n\nNext step: ${action.trim()}`;
+
+        }
+
+
+        setCommentText(
+            (previous) => ({
+
+                ...previous,
+
+                [ticket._id]:
+                    reply
+
+            })
+        );
+
+
+        // Scroll naturally to composer by focusing after render
+
+        setTimeout(() => {
+
+            const element =
+                document.getElementById(
+                    `comment-${ticket._id}`
+                );
+
+
+            if (element) {
+
+                element.focus();
+
+            }
+
+        }, 50);
 
     };
 
@@ -608,52 +817,60 @@ function AgentDashboard({
             setTickets(
                 (previousTickets) => {
 
-                    return previousTickets.map(
-                        (ticket) => {
+                    const updated =
+                        previousTickets.map(
+                            (ticket) => {
 
-                            if (
-                                ticket._id !==
-                                ticketId
-                            ) {
+                                if (
+                                    ticket._id !==
+                                    ticketId
+                                ) {
 
-                                return ticket;
+                                    return ticket;
+
+                                }
+
+
+                                const comments =
+                                    ticket.comments ||
+                                    [];
+
+
+                                const exists =
+                                    comments.some(
+                                        (comment) =>
+                                            comment._id ===
+                                            newComment._id
+                                    );
+
+
+                                if (exists) {
+
+                                    return ticket;
+
+                                }
+
+
+                                return {
+
+                                    ...ticket,
+
+                                    comments: [
+                                        ...comments,
+                                        newComment
+                                    ]
+
+                                };
 
                             }
+                        );
 
 
-                            const comments =
-                                ticket.comments ||
-                                [];
+                    ticketsRef.current =
+                        updated;
 
 
-                            const exists =
-                                comments.some(
-                                    (comment) =>
-                                        comment._id ===
-                                        newComment._id
-                                );
-
-
-                            if (exists) {
-
-                                return ticket;
-
-                            }
-
-
-                            return {
-
-                                ...ticket,
-
-                                comments: [
-                                    ...comments,
-                                    newComment
-                                ]
-
-                            };
-
-                        }
-                    );
+                    return updated;
 
                 }
             );
@@ -661,8 +878,12 @@ function AgentDashboard({
 
             setCommentText(
                 (previous) => ({
+
                     ...previous,
-                    [ticketId]: ""
+
+                    [ticketId]:
+                        ""
+
                 })
             );
 
@@ -730,6 +951,7 @@ function AgentDashboard({
 
         }
 
+
         if (
             status === "in-progress"
         ) {
@@ -737,6 +959,7 @@ function AgentDashboard({
             return styles.statusProgress;
 
         }
+
 
         if (
             status === "resolved"
@@ -746,7 +969,79 @@ function AgentDashboard({
 
         }
 
+
         return styles.statusDefault;
+
+    };
+
+
+    // ======================================================
+    // PRIORITY STYLE
+    // ======================================================
+
+    const getPriorityStyle = (
+        priority
+    ) => {
+
+        if (
+            priority === "urgent"
+        ) {
+
+            return styles.priorityUrgent;
+
+        }
+
+
+        if (
+            priority === "high"
+        ) {
+
+            return styles.priorityHigh;
+
+        }
+
+
+        if (
+            priority === "low"
+        ) {
+
+            return styles.priorityLow;
+
+        }
+
+
+        return styles.priorityMedium;
+
+    };
+
+
+    // ======================================================
+    // CONFIDENCE STYLE
+    // ======================================================
+
+    const getConfidenceStyle = (
+        confidence
+    ) => {
+
+        if (
+            confidence === "high"
+        ) {
+
+            return styles.confidenceHigh;
+
+        }
+
+
+        if (
+            confidence === "low"
+        ) {
+
+            return styles.confidenceLow;
+
+        }
+
+
+        return styles.confidenceMedium;
 
     };
 
@@ -761,9 +1056,21 @@ function AgentDashboard({
 
             <div style={styles.center}>
 
-                <h2>
-                    Loading tickets...
-                </h2>
+                <div style={styles.loadingCard}>
+
+                    <div style={styles.loadingIcon}>
+                        🤖
+                    </div>
+
+                    <h2>
+                        Loading tickets...
+                    </h2>
+
+                    <p>
+                        Nesti is preparing your workspace.
+                    </p>
+
+                </div>
 
             </div>
 
@@ -781,7 +1088,9 @@ function AgentDashboard({
         <div style={styles.page}>
 
 
-            {/* NAVBAR */}
+            {/* ==================================================
+                NAVBAR
+            ================================================== */}
 
             <nav style={styles.navbar}>
 
@@ -828,12 +1137,16 @@ function AgentDashboard({
             </nav>
 
 
-            {/* MAIN */}
+            {/* ==================================================
+                MAIN
+            ================================================== */}
 
             <main style={styles.container}>
 
 
-                {/* HEADER */}
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
 
                 <div style={styles.header}>
 
@@ -849,7 +1162,8 @@ function AgentDashboard({
                             }
                         >
                             Manage your assigned
-                            customer tickets.
+                            customer tickets with
+                            AI-powered assistance.
                         </p>
 
                     </div>
@@ -874,7 +1188,9 @@ function AgentDashboard({
                 </div>
 
 
-                {/* ERROR */}
+                {/* ==================================================
+                    ERROR
+                ================================================== */}
 
                 {error && (
 
@@ -894,11 +1210,17 @@ function AgentDashboard({
                 </h2>
 
 
-                {/* NO TICKETS */}
+                {/* ==================================================
+                    NO TICKETS
+                ================================================== */}
 
                 {tickets.length === 0 ? (
 
                     <div style={styles.empty}>
+
+                        <div style={styles.emptyIcon}>
+                            🎫
+                        </div>
 
                         <h2>
                             No tickets assigned
@@ -931,7 +1253,9 @@ function AgentDashboard({
                                     }
                                 >
 
-                                    {/* TOP */}
+                                    {/* ==================================================
+                                        TICKET TOP
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -939,15 +1263,36 @@ function AgentDashboard({
                                         }
                                     >
 
-                                        <h2
+                                        <div
                                             style={
-                                                styles.ticketTitle
+                                                styles.titleArea
                                             }
                                         >
-                                            {
-                                                ticket.title
-                                            }
-                                        </h2>
+
+                                            <h2
+                                                style={
+                                                    styles.ticketTitle
+                                                }
+                                            >
+                                                {
+                                                    ticket.title
+                                                }
+                                            </h2>
+
+                                            <small
+                                                style={
+                                                    styles.ticketId
+                                                }
+                                            >
+                                                Ticket #
+                                                {
+                                                    ticket._id
+                                                        ?.slice(-8)
+                                                        .toUpperCase()
+                                                }
+                                            </small>
+
+                                        </div>
 
 
                                         <span
@@ -966,7 +1311,9 @@ function AgentDashboard({
                                     </div>
 
 
-                                    {/* DESCRIPTION */}
+                                    {/* ==================================================
+                                        DESCRIPTION
+                                    ================================================== */}
 
                                     <p
                                         style={
@@ -979,7 +1326,9 @@ function AgentDashboard({
                                     </p>
 
 
-                                    {/* TAGS */}
+                                    {/* ==================================================
+                                        TAGS
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -994,15 +1343,18 @@ function AgentDashboard({
                                         >
                                             {
                                                 ticket.category ||
-                                                "General"
+                                                "general"
                                             }
                                         </span>
 
 
                                         <span
-                                            style={
-                                                styles.priority
-                                            }
+                                            style={{
+                                                ...styles.priority,
+                                                ...getPriorityStyle(
+                                                    ticket.priority
+                                                )
+                                            }}
                                         >
                                             {
                                                 ticket.priority ||
@@ -1020,7 +1372,9 @@ function AgentDashboard({
                                     />
 
 
-                                    {/* CUSTOMER */}
+                                    {/* ==================================================
+                                        CUSTOMER + DEPARTMENT
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -1098,7 +1452,9 @@ function AgentDashboard({
                                     </div>
 
 
-                                    {/* AI */}
+                                    {/* ==================================================
+                                        AI ANALYSIS
+                                    ================================================== */}
 
                                     {ticket.aiAnalysis && (
 
@@ -1108,47 +1464,83 @@ function AgentDashboard({
                                             }
                                         >
 
-                                            <h3
+                                            <div
                                                 style={
-                                                    styles.aiTitle
+                                                    styles.aiHeader
                                                 }
                                             >
-                                                🤖 AI Analysis
-                                            </h3>
+
+                                                <h3
+                                                    style={
+                                                        styles.aiTitle
+                                                    }
+                                                >
+                                                    🤖 AI Analysis
+                                                </h3>
+
+                                            </div>
 
 
-                                            <p>
-
-                                                <strong>
-                                                    Category:
-                                                </strong>{" "}
-
-                                                {
-                                                    ticket
-                                                        .aiAnalysis
-                                                        .category ||
-                                                    ticket.category ||
-                                                    "N/A"
+                                            <div
+                                                style={
+                                                    styles.aiDetails
                                                 }
+                                            >
 
-                                            </p>
+                                                <div
+                                                    style={
+                                                        styles.aiItem
+                                                    }
+                                                >
+
+                                                    <span
+                                                        style={
+                                                            styles.aiLabel
+                                                        }
+                                                    >
+                                                        Category
+                                                    </span>
+
+                                                    <strong>
+                                                        {
+                                                            ticket
+                                                                .aiAnalysis
+                                                                .category ||
+                                                            ticket.category ||
+                                                            "N/A"
+                                                        }
+                                                    </strong>
+
+                                                </div>
 
 
-                                            <p>
+                                                <div
+                                                    style={
+                                                        styles.aiItem
+                                                    }
+                                                >
 
-                                                <strong>
-                                                    Priority:
-                                                </strong>{" "}
+                                                    <span
+                                                        style={
+                                                            styles.aiLabel
+                                                        }
+                                                    >
+                                                        Priority
+                                                    </span>
 
-                                                {
-                                                    ticket
-                                                        .aiAnalysis
-                                                        .priority ||
-                                                    ticket.priority ||
-                                                    "N/A"
-                                                }
+                                                    <strong>
+                                                        {
+                                                            ticket
+                                                                .aiAnalysis
+                                                                .priority ||
+                                                            ticket.priority ||
+                                                            "N/A"
+                                                        }
+                                                    </strong>
 
-                                            </p>
+                                                </div>
+
+                                            </div>
 
 
                                             {ticket
@@ -1192,6 +1584,195 @@ function AgentDashboard({
 
                                             )}
 
+
+                                            {/* ==================================================
+                                                AI RECOMMENDED SOLUTION ⭐
+                                            ================================================== */}
+
+                                            {ticket
+                                                .aiAnalysis
+                                                .recommendedSolution && (
+
+                                                <div
+                                                    style={
+                                                        styles.solutionBox
+                                                    }
+                                                >
+
+                                                    <div
+                                                        style={
+                                                            styles.solutionHeader
+                                                        }
+                                                    >
+
+                                                        <div>
+
+                                                            <div
+                                                                style={
+                                                                    styles.solutionLabel
+                                                                }
+                                                            >
+                                                                ✨ AI ASSIST
+                                                            </div>
+
+                                                            <h3
+                                                                style={
+                                                                    styles.solutionTitle
+                                                                }
+                                                            >
+                                                                💡 Recommended Solution
+                                                            </h3>
+
+                                                        </div>
+
+
+                                                        {ticket
+                                                            .aiAnalysis
+                                                            .solutionConfidence && (
+
+                                                            <span
+                                                                style={{
+                                                                    ...styles.confidenceBadge,
+                                                                    ...getConfidenceStyle(
+                                                                        ticket
+                                                                            .aiAnalysis
+                                                                            .solutionConfidence
+                                                                    )
+                                                                }}
+                                                            >
+                                                                {
+                                                                    ticket
+                                                                        .aiAnalysis
+                                                                        .solutionConfidence
+                                                                        .toUpperCase()
+                                                                }{" "}
+                                                                CONFIDENCE
+                                                            </span>
+
+                                                        )}
+
+                                                    </div>
+
+
+                                                    {/* ==================================================
+                                                        RECOMMENDED ACTION
+                                                    ================================================== */}
+
+                                                    <div
+                                                        style={
+                                                            styles.actionRecommendation
+                                                        }
+                                                    >
+
+                                                        <div
+                                                            style={
+                                                                styles.recommendationIcon
+                                                            }
+                                                        >
+                                                            🎯
+                                                        </div>
+
+
+                                                        <div
+                                                            style={
+                                                                styles.recommendationBody
+                                                            }
+                                                        >
+
+                                                            <strong
+                                                                style={
+                                                                    styles.recommendationHeading
+                                                                }
+                                                            >
+                                                                Recommended Action
+                                                            </strong>
+
+
+                                                            <p
+                                                                style={
+                                                                    styles.recommendationText
+                                                                }
+                                                            >
+                                                                {
+                                                                    ticket
+                                                                        .aiAnalysis
+                                                                        .recommendedAction ||
+                                                                    "Review the ticket and investigate the reported issue."
+                                                                }
+                                                            </p>
+
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    {/* ==================================================
+                                                        SOLUTION
+                                                    ================================================== */}
+
+                                                    <div
+                                                        style={
+                                                            styles.solutionContent
+                                                        }
+                                                    >
+
+                                                        <strong
+                                                            style={
+                                                                styles.recommendationHeading
+                                                            }
+                                                        >
+                                                            🔎 Solution / Investigation Steps
+                                                        </strong>
+
+
+                                                        <p
+                                                            style={
+                                                                styles.recommendationText
+                                                            }
+                                                        >
+                                                            {
+                                                                ticket
+                                                                    .aiAnalysis
+                                                                    .recommendedSolution
+                                                            }
+                                                        </p>
+
+                                                    </div>
+
+
+                                                    {/* ==================================================
+                                                        USE AI RECOMMENDATION
+                                                    ================================================== */}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            useAIRecommendation(
+                                                                ticket
+                                                            )
+                                                        }
+                                                        style={
+                                                            styles.useAIButton
+                                                        }
+                                                    >
+                                                        ✨ Use AI Recommendation
+                                                    </button>
+
+
+                                                    <p
+                                                        style={
+                                                            styles.aiDisclaimer
+                                                        }
+                                                    >
+                                                        AI-generated guidance.
+                                                        Review and edit it before
+                                                        sending to the customer.
+                                                    </p>
+
+                                                </div>
+
+                                            )}
+
                                         </div>
 
                                     )}
@@ -1232,7 +1813,8 @@ function AgentDashboard({
                                                         ticket.comments ||
                                                         []
                                                     ).length
-                                                } messages
+                                                }{" "}
+                                                messages
                                             </span>
 
                                         </div>
@@ -1267,11 +1849,19 @@ function AgentDashboard({
                                                         index
                                                     ) => {
 
-                                                        const isMine =
-                                                            comment.author?._id ===
+                                                        const commentAuthorId =
+                                                            comment.author?._id ||
+                                                            comment.author;
+
+
+                                                        const currentUserId =
                                                             user?._id ||
-                                                            comment.author ===
-                                                            user?._id;
+                                                            user?.id;
+
+
+                                                        const isMine =
+                                                            commentAuthorId?.toString() ===
+                                                            currentUserId?.toString();
 
 
                                                         return (
@@ -1346,7 +1936,9 @@ function AgentDashboard({
                                         </div>
 
 
-                                        {/* COMPOSER */}
+                                        {/* ==================================================
+                                            COMMENT COMPOSER
+                                        ================================================== */}
 
                                         <div
                                             style={
@@ -1355,6 +1947,7 @@ function AgentDashboard({
                                         >
 
                                             <textarea
+                                                id={`comment-${ticket._id}`}
                                                 value={
                                                     commentText[
                                                         ticket._id
@@ -1363,9 +1956,12 @@ function AgentDashboard({
                                                 onChange={(e) =>
                                                     setCommentText(
                                                         (previous) => ({
+
                                                             ...previous,
+
                                                             [ticket._id]:
                                                                 e.target.value
+
                                                         })
                                                     )
                                                 }
@@ -1424,7 +2020,9 @@ function AgentDashboard({
                                     </div>
 
 
-                                    {/* STATUS ACTIONS */}
+                                    {/* ==================================================
+                                        STATUS ACTIONS
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -1453,10 +2051,12 @@ function AgentDashboard({
                                                 )
                                             }
                                         >
-                                            {updatingTicket ===
-                                            ticket._id
-                                                ? "Updating..."
-                                                : "Open"}
+                                            {
+                                                updatingTicket ===
+                                                ticket._id
+                                                    ? "Updating..."
+                                                    : "Open"
+                                            }
                                         </button>
 
 
@@ -1481,10 +2081,12 @@ function AgentDashboard({
                                                 )
                                             }
                                         >
-                                            {updatingTicket ===
-                                            ticket._id
-                                                ? "Updating..."
-                                                : "In Progress"}
+                                            {
+                                                updatingTicket ===
+                                                ticket._id
+                                                    ? "Updating..."
+                                                    : "In Progress"
+                                            }
                                         </button>
 
 
@@ -1509,10 +2111,12 @@ function AgentDashboard({
                                                 )
                                             }
                                         >
-                                            {updatingTicket ===
-                                            ticket._id
-                                                ? "Updating..."
-                                                : "Resolve"}
+                                            {
+                                                updatingTicket ===
+                                                ticket._id
+                                                    ? "Updating..."
+                                                    : "Resolve"
+                                            }
                                         </button>
 
                                     </div>
@@ -1547,6 +2151,7 @@ const styles = {
         color: "#1f2937"
     },
 
+
     center: {
         minHeight: "100vh",
         display: "flex",
@@ -1554,6 +2159,23 @@ const styles = {
         alignItems: "center",
         background: "#f5f7fb"
     },
+
+
+    loadingCard: {
+        background: "white",
+        padding: "40px",
+        borderRadius: "18px",
+        textAlign: "center",
+        boxShadow:
+            "0 10px 30px rgba(0,0,0,0.08)"
+    },
+
+
+    loadingIcon: {
+        fontSize: "38px",
+        marginBottom: "10px"
+    },
+
 
     navbar: {
         minHeight: "70px",
@@ -1566,10 +2188,12 @@ const styles = {
             "0 2px 10px rgba(0,0,0,0.06)"
     },
 
+
     logo: {
         margin: 0,
         fontSize: "24px"
     },
+
 
     subtitle: {
         margin: "4px 0 0",
@@ -1577,11 +2201,13 @@ const styles = {
         fontSize: "14px"
     },
 
+
     navRight: {
         display: "flex",
         alignItems: "center",
         gap: "20px"
     },
+
 
     userInfo: {
         display: "flex",
@@ -1589,6 +2215,7 @@ const styles = {
         alignItems: "flex-end",
         gap: "3px"
     },
+
 
     logoutButton: {
         padding: "10px 18px",
@@ -1600,11 +2227,13 @@ const styles = {
         fontWeight: "600"
     },
 
+
     container: {
         maxWidth: "1200px",
         margin: "0 auto",
         padding: "40px 25px"
     },
+
 
     header: {
         display: "flex",
@@ -1614,16 +2243,21 @@ const styles = {
         gap: "30px"
     },
 
+
     heading: {
         margin: 0,
         fontSize: "32px"
     },
 
+
     headerText: {
         color: "#6b7280",
         fontSize: "16px",
-        marginTop: "8px"
+        marginTop: "8px",
+        maxWidth: "650px",
+        lineHeight: "1.5"
     },
+
 
     stats: {
         minWidth: "150px",
@@ -1637,13 +2271,16 @@ const styles = {
             "0 5px 20px rgba(0,0,0,0.06)"
     },
 
+
     statNumber: {
         fontSize: "28px"
     },
 
+
     sectionTitle: {
         marginBottom: "20px"
     },
+
 
     error: {
         background: "#fee2e2",
@@ -1652,6 +2289,7 @@ const styles = {
         borderRadius: "10px",
         marginBottom: "20px"
     },
+
 
     empty: {
         background: "white",
@@ -1662,12 +2300,20 @@ const styles = {
             "0 5px 20px rgba(0,0,0,0.05)"
     },
 
+
+    emptyIcon: {
+        fontSize: "42px",
+        marginBottom: "10px"
+    },
+
+
     ticketGrid: {
         display: "grid",
         gridTemplateColumns:
             "repeat(auto-fit, minmax(450px, 1fr))",
         gap: "25px"
     },
+
 
     ticket: {
         background: "white",
@@ -1677,6 +2323,7 @@ const styles = {
             "0 5px 20px rgba(0,0,0,0.06)"
     },
 
+
     ticketTop: {
         display: "flex",
         justifyContent: "space-between",
@@ -1684,10 +2331,25 @@ const styles = {
         gap: "15px"
     },
 
+
+    titleArea: {
+        minWidth: 0
+    },
+
+
     ticketTitle: {
         margin: 0,
         fontSize: "21px"
     },
+
+
+    ticketId: {
+        display: "block",
+        marginTop: "6px",
+        color: "#9ca3af",
+        fontSize: "11px"
+    },
+
 
     status: {
         padding: "7px 12px",
@@ -1697,25 +2359,30 @@ const styles = {
         whiteSpace: "nowrap"
     },
 
+
     statusOpen: {
         background: "#fee2e2",
         color: "#991b1b"
     },
+
 
     statusProgress: {
         background: "#fef3c7",
         color: "#92400e"
     },
 
+
     statusResolved: {
         background: "#dcfce7",
         color: "#166534"
     },
 
+
     statusDefault: {
         background: "#e5e7eb",
         color: "#374151"
     },
+
 
     description: {
         color: "#6b7280",
@@ -1723,11 +2390,13 @@ const styles = {
         marginTop: "18px"
     },
 
+
     tags: {
         display: "flex",
         gap: "10px",
         margin: "18px 0"
     },
+
 
     category: {
         background: "#ede9fe",
@@ -1738,14 +2407,38 @@ const styles = {
         fontWeight: "600"
     },
 
+
     priority: {
-        background: "#fee2e2",
-        color: "#b91c1c",
         padding: "6px 10px",
         borderRadius: "6px",
         fontSize: "12px",
         fontWeight: "600"
     },
+
+
+    priorityUrgent: {
+        background: "#fee2e2",
+        color: "#991b1b"
+    },
+
+
+    priorityHigh: {
+        background: "#ffedd5",
+        color: "#c2410c"
+    },
+
+
+    priorityMedium: {
+        background: "#fef3c7",
+        color: "#92400e"
+    },
+
+
+    priorityLow: {
+        background: "#dcfce7",
+        color: "#166534"
+    },
+
 
     line: {
         border: "none",
@@ -1753,39 +2446,223 @@ const styles = {
         margin: "20px 0"
     },
 
+
     infoGrid: {
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: "20px"
     },
 
+
     infoTitle: {
         fontSize: "14px"
     },
+
 
     infoText: {
         margin: "6px 0 2px",
         fontSize: "15px"
     },
 
+
     email: {
         color: "#6b7280"
     },
+
+
+    // ==================================================
+    // AI ANALYSIS
+    // ==================================================
 
     aiBox: {
         marginTop: "22px",
         padding: "18px",
         background: "#f5f3ff",
-        borderRadius: "10px",
+        borderRadius: "12px",
         color: "#374151",
         fontSize: "14px",
         lineHeight: "1.5"
     },
 
+
+    aiHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+    },
+
+
     aiTitle: {
         marginTop: 0,
-        color: "#6d28d9"
+        color: "#6d28d9",
+        marginBottom: "15px"
     },
+
+
+    aiDetails: {
+        display: "grid",
+        gridTemplateColumns:
+            "1fr 1fr",
+        gap: "10px",
+        marginBottom: "10px"
+    },
+
+
+    aiItem: {
+        background: "white",
+        padding: "10px 12px",
+        borderRadius: "8px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "3px"
+    },
+
+
+    aiLabel: {
+        color: "#6b7280",
+        fontSize: "11px",
+        textTransform: "uppercase",
+        letterSpacing: "0.04em"
+    },
+
+
+    // ==================================================
+    // AI RECOMMENDED SOLUTION
+    // ==================================================
+
+    solutionBox: {
+        marginTop: "20px",
+        padding: "18px",
+        background: "white",
+        borderRadius: "12px",
+        border: "1px solid #ddd6fe",
+        boxShadow:
+            "0 3px 12px rgba(0,0,0,0.04)"
+    },
+
+
+    solutionHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "12px",
+        marginBottom: "16px"
+    },
+
+
+    solutionLabel: {
+        color: "#8b5cf6",
+        fontSize: "10px",
+        fontWeight: "800",
+        letterSpacing: "0.08em",
+        marginBottom: "3px"
+    },
+
+
+    solutionTitle: {
+        margin: 0,
+        color: "#5b21b6",
+        fontSize: "18px"
+    },
+
+
+    confidenceBadge: {
+        padding: "6px 10px",
+        borderRadius: "20px",
+        fontSize: "10px",
+        fontWeight: "800",
+        whiteSpace: "nowrap"
+    },
+
+
+    confidenceHigh: {
+        background: "#dcfce7",
+        color: "#166534"
+    },
+
+
+    confidenceMedium: {
+        background: "#fef3c7",
+        color: "#92400e"
+    },
+
+
+    confidenceLow: {
+        background: "#fee2e2",
+        color: "#991b1b"
+    },
+
+
+    actionRecommendation: {
+        display: "flex",
+        gap: "12px",
+        padding: "13px",
+        background: "#f5f3ff",
+        borderRadius: "9px",
+        marginBottom: "12px"
+    },
+
+
+    recommendationIcon: {
+        fontSize: "20px",
+        flexShrink: 0
+    },
+
+
+    recommendationBody: {
+        flex: 1,
+        minWidth: 0
+    },
+
+
+    recommendationHeading: {
+        display: "block",
+        color: "#374151",
+        fontSize: "13px"
+    },
+
+
+    recommendationText: {
+        margin: "6px 0 0",
+        color: "#4b5563",
+        lineHeight: "1.6",
+        whiteSpace: "pre-line"
+    },
+
+
+    solutionContent: {
+        padding: "13px",
+        background: "#fafafa",
+        borderRadius: "9px"
+    },
+
+
+    // ==================================================
+    // USE AI BUTTON
+    // ==================================================
+
+    useAIButton: {
+        width: "100%",
+        marginTop: "14px",
+        padding: "12px 16px",
+        border: "none",
+        borderRadius: "9px",
+        background: "#6d28d9",
+        color: "white",
+        fontWeight: "700",
+        fontSize: "13px",
+        cursor: "pointer",
+        transition: "all 0.2s ease"
+    },
+
+
+    aiDisclaimer: {
+        margin: "12px 0 0",
+        fontSize: "11px",
+        color: "#9ca3af",
+        fontStyle: "italic"
+    },
+
 
     // ==================================================
     // COMMENTS
@@ -1797,6 +2674,7 @@ const styles = {
         paddingTop: "20px"
     },
 
+
     commentsHeader: {
         display: "flex",
         justifyContent: "space-between",
@@ -1804,10 +2682,12 @@ const styles = {
         marginBottom: "15px"
     },
 
+
     commentCount: {
         fontSize: "12px",
         color: "#6b7280"
     },
+
 
     commentsList: {
         display: "flex",
@@ -1818,6 +2698,7 @@ const styles = {
         padding: "5px"
     },
 
+
     noComments: {
         padding: "18px",
         background: "#f9fafb",
@@ -1827,21 +2708,25 @@ const styles = {
         textAlign: "center"
     },
 
+
     comment: {
         padding: "12px 14px",
         borderRadius: "12px",
         maxWidth: "85%"
     },
 
+
     myComment: {
         alignSelf: "flex-end",
         background: "#eef2ff"
     },
 
+
     otherComment: {
         alignSelf: "flex-start",
         background: "#f3f4f6"
     },
+
 
     commentMeta: {
         display: "flex",
@@ -1851,6 +2736,7 @@ const styles = {
         fontSize: "12px"
     },
 
+
     commentMessage: {
         margin: 0,
         fontSize: "14px",
@@ -1859,6 +2745,7 @@ const styles = {
         wordBreak: "break-word"
     },
 
+
     commentComposer: {
         display: "flex",
         gap: "10px",
@@ -1866,17 +2753,21 @@ const styles = {
         alignItems: "flex-end"
     },
 
+
     commentInput: {
         flex: 1,
         minHeight: "45px",
-        maxHeight: "110px",
+        maxHeight: "150px",
         resize: "vertical",
         padding: "11px",
         border: "1px solid #d1d5db",
         borderRadius: "9px",
         fontSize: "14px",
-        boxSizing: "border-box"
+        boxSizing: "border-box",
+        fontFamily: "inherit",
+        lineHeight: "1.5"
     },
+
 
     sendButton: {
         padding: "11px 18px",
@@ -1885,13 +2776,20 @@ const styles = {
         background: "#4f46e5",
         color: "white",
         fontWeight: "600",
-        cursor: "pointer"
+        cursor: "pointer",
+        whiteSpace: "nowrap"
     },
+
 
     sendDisabled: {
         opacity: 0.5,
         cursor: "not-allowed"
     },
+
+
+    // ==================================================
+    // STATUS ACTIONS
+    // ==================================================
 
     actions: {
         display: "grid",
@@ -1901,6 +2799,7 @@ const styles = {
         marginTop: "24px"
     },
 
+
     actionButton: {
         padding: "12px",
         border: "none",
@@ -1909,20 +2808,24 @@ const styles = {
         fontWeight: "600"
     },
 
+
     openButton: {
         background: "#fee2e2",
         color: "#991b1b"
     },
+
 
     progressButton: {
         background: "#fef3c7",
         color: "#92400e"
     },
 
+
     resolveButton: {
         background: "#dcfce7",
         color: "#166534"
     },
+
 
     activeButton: {
         outline: "3px solid #d1d5db"

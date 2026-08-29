@@ -1,23 +1,46 @@
-import { useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
+import {
+    useEffect,
+    useRef,
+    useState
+} from "react";
+
+import {
+    io
+} from "socket.io-client";
 
 import api from "./services/api";
 
-const SOCKET_URL = "http://localhost:5000";
 
-function CustomerDashboard({ user, onLogout }) {
+const SOCKET_URL =
+    "http://localhost:5000";
 
-    const [tickets, setTickets] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [creating, setCreating] = useState(false);
 
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+function CustomerDashboard({
+    user,
+    onLogout
+}) {
+
+    const [tickets, setTickets] =
+        useState([]);
+
+    const [loading, setLoading] =
+        useState(true);
+
+    const [creating, setCreating] =
+        useState(false);
+
+    const [error, setError] =
+        useState("");
+
+    const [success, setSuccess] =
+        useState("");
 
     const [showCreateForm, setShowCreateForm] =
         useState(false);
 
-    const [title, setTitle] = useState("");
+    const [title, setTitle] =
+        useState("");
+
     const [description, setDescription] =
         useState("");
 
@@ -27,11 +50,19 @@ function CustomerDashboard({ user, onLogout }) {
     const [sendingComment, setSendingComment] =
         useState(null);
 
-    const socketRef = useRef(null);
 
-    const ticketsRef = useRef([]);
+    // ======================================================
+    // SOCKET REFS
+    // ======================================================
 
-    const joinedTicketsRef = useRef(new Set());
+    const socketRef =
+        useRef(null);
+
+    const ticketsRef =
+        useRef([]);
+
+    const joinedTicketsRef =
+        useRef(new Set());
 
 
     // ======================================================
@@ -40,13 +71,14 @@ function CustomerDashboard({ user, onLogout }) {
 
     useEffect(() => {
 
-        ticketsRef.current = tickets;
+        ticketsRef.current =
+            tickets;
 
     }, [tickets]);
 
 
     // ======================================================
-    // FETCH TICKETS
+    // FETCH CUSTOMER TICKETS
     // ======================================================
 
     const fetchTickets = async () => {
@@ -56,15 +88,23 @@ function CustomerDashboard({ user, onLogout }) {
             setError("");
 
             const response =
-                await api.get("/tickets/my");
+                await api.get(
+                    "/tickets/my"
+                );
+
 
             const fetchedTickets =
                 response.data.tickets || [];
 
-            setTickets(fetchedTickets);
+
+            setTickets(
+                fetchedTickets
+            );
+
 
             ticketsRef.current =
                 fetchedTickets;
+
 
         } catch (err) {
 
@@ -72,6 +112,7 @@ function CustomerDashboard({ user, onLogout }) {
                 "FETCH CUSTOMER TICKETS ERROR:",
                 err
             );
+
 
             setError(
                 err.response?.data?.message ||
@@ -108,6 +149,7 @@ function CustomerDashboard({ user, onLogout }) {
             "Creating customer Socket.IO connection..."
         );
 
+
         const socket =
             io(
                 SOCKET_URL,
@@ -121,12 +163,14 @@ function CustomerDashboard({ user, onLogout }) {
                 }
             );
 
-        socketRef.current = socket;
+
+        socketRef.current =
+            socket;
 
 
-        // --------------------------------------------------
+        // ==================================================
         // CONNECT
-        // --------------------------------------------------
+        // ==================================================
 
         socket.on(
             "connect",
@@ -136,6 +180,7 @@ function CustomerDashboard({ user, onLogout }) {
                     "Customer socket connected:",
                     socket.id
                 );
+
 
                 joinedTicketsRef.current.clear();
 
@@ -148,6 +193,7 @@ function CustomerDashboard({ user, onLogout }) {
                             ticket._id
                         );
 
+
                         joinedTicketsRef.current.add(
                             ticket._id
                         );
@@ -159,9 +205,9 @@ function CustomerDashboard({ user, onLogout }) {
         );
 
 
-        // --------------------------------------------------
+        // ==================================================
         // JOIN CONFIRMATION
-        // --------------------------------------------------
+        // ==================================================
 
         socket.on(
             "joinedTicket",
@@ -176,9 +222,93 @@ function CustomerDashboard({ user, onLogout }) {
         );
 
 
-        // --------------------------------------------------
+        // ==================================================
+        // TICKET CREATED
+        // ==================================================
+
+        socket.on(
+            "ticketCreated",
+            (data) => {
+
+                if (
+                    !data ||
+                    !data.ticket
+                ) {
+
+                    return;
+
+                }
+
+
+                const newTicket =
+                    data.ticket;
+
+
+                setTickets(
+                    (previousTickets) => {
+
+                        const exists =
+                            previousTickets.some(
+                                (ticket) =>
+                                    ticket._id ===
+                                    newTicket._id
+                            );
+
+
+                        if (exists) {
+
+                            return previousTickets;
+
+                        }
+
+
+                        const updated = [
+
+                            newTicket,
+
+                            ...previousTickets
+
+                        ];
+
+
+                        ticketsRef.current =
+                            updated;
+
+
+                        return updated;
+
+                    }
+                );
+
+
+                // Join newly created ticket
+
+                if (
+                    socket.connected &&
+                    !joinedTicketsRef.current.has(
+                        newTicket._id
+                    )
+                ) {
+
+                    socket.emit(
+                        "joinTicket",
+                        newTicket._id
+                    );
+
+
+                    joinedTicketsRef.current.add(
+                        newTicket._id
+                    );
+
+                }
+
+            }
+        );
+
+
+        // ==================================================
         // STATUS UPDATE
-        // --------------------------------------------------
+        // ==================================================
 
         socket.on(
             "ticketStatusUpdated",
@@ -189,6 +319,7 @@ function CustomerDashboard({ user, onLogout }) {
                     data
                 );
 
+
                 setTickets(
                     (previousTickets) => {
 
@@ -197,25 +328,31 @@ function CustomerDashboard({ user, onLogout }) {
                                 (ticket) => {
 
                                     if (
-                                        ticket._id ===
+                                        ticket._id !==
                                         data.ticketId
                                     ) {
 
-                                        return {
-                                            ...ticket,
-                                            status:
-                                                data.status
-                                        };
+                                        return ticket;
 
                                     }
 
-                                    return ticket;
+
+                                    return {
+
+                                        ...ticket,
+
+                                        status:
+                                            data.status
+
+                                    };
 
                                 }
                             );
 
+
                         ticketsRef.current =
                             updated;
+
 
                         return updated;
 
@@ -229,7 +366,7 @@ function CustomerDashboard({ user, onLogout }) {
                 ) {
 
                     setSuccess(
-                        "Your ticket is now in progress."
+                        "Your ticket is now in progress 🚀"
                     );
 
                 }
@@ -241,7 +378,19 @@ function CustomerDashboard({ user, onLogout }) {
                 ) {
 
                     setSuccess(
-                        "Your ticket has been resolved."
+                        "Your ticket has been resolved 🎉"
+                    );
+
+                }
+
+
+                if (
+                    data.status ===
+                    "open"
+                ) {
+
+                    setSuccess(
+                        "Your ticket is now open."
                     );
 
                 }
@@ -250,9 +399,9 @@ function CustomerDashboard({ user, onLogout }) {
         );
 
 
-        // --------------------------------------------------
-        // NEW COMMENT / REPLY
-        // --------------------------------------------------
+        // ==================================================
+        // NEW COMMENT
+        // ==================================================
 
         socket.on(
             "ticketCommentAdded",
@@ -264,56 +413,75 @@ function CustomerDashboard({ user, onLogout }) {
                 );
 
 
+                if (
+                    !data ||
+                    !data.ticketId ||
+                    !data.comment
+                ) {
+
+                    return;
+
+                }
+
+
                 setTickets(
                     (previousTickets) => {
 
-                        return previousTickets.map(
-                            (ticket) => {
+                        const updated =
+                            previousTickets.map(
+                                (ticket) => {
 
-                                if (
-                                    ticket._id !==
-                                    data.ticketId
-                                ) {
+                                    if (
+                                        ticket._id !==
+                                        data.ticketId
+                                    ) {
 
-                                    return ticket;
+                                        return ticket;
+
+                                    }
+
+
+                                    const existingComments =
+                                        ticket.comments || [];
+
+
+                                    const alreadyExists =
+                                        existingComments.some(
+                                            (comment) =>
+                                                comment._id ===
+                                                data.comment._id
+                                        );
+
+
+                                    if (
+                                        alreadyExists
+                                    ) {
+
+                                        return ticket;
+
+                                    }
+
+
+                                    return {
+
+                                        ...ticket,
+
+                                        comments: [
+                                            ...existingComments,
+                                            data.comment
+                                        ]
+
+                                    };
 
                                 }
+                            );
 
 
-                                const existingComments =
-                                    ticket.comments || [];
+                        ticketsRef.current =
+                            updated;
 
 
-                                const alreadyExists =
-                                    existingComments.some(
-                                        (comment) =>
-                                            comment._id ===
-                                            data.comment._id
-                                    );
-
-
-                                if (
-                                    alreadyExists
-                                ) {
-
-                                    return ticket;
-
-                                }
-
-
-                                return {
-
-                                    ...ticket,
-
-                                    comments: [
-                                        ...existingComments,
-                                        data.comment
-                                    ]
-
-                                };
-
-                            }
-                        );
+                        return updated;
 
                     }
                 );
@@ -322,9 +490,9 @@ function CustomerDashboard({ user, onLogout }) {
         );
 
 
-        // --------------------------------------------------
+        // ==================================================
         // SOCKET ERROR
-        // --------------------------------------------------
+        // ==================================================
 
         socket.on(
             "socketError",
@@ -339,6 +507,10 @@ function CustomerDashboard({ user, onLogout }) {
         );
 
 
+        // ==================================================
+        // CONNECT ERROR
+        // ==================================================
+
         socket.on(
             "connect_error",
             (err) => {
@@ -352,6 +524,10 @@ function CustomerDashboard({ user, onLogout }) {
         );
 
 
+        // ==================================================
+        // DISCONNECT
+        // ==================================================
+
         socket.on(
             "disconnect",
             (reason) => {
@@ -361,15 +537,16 @@ function CustomerDashboard({ user, onLogout }) {
                     reason
                 );
 
+
                 joinedTicketsRef.current.clear();
 
             }
         );
 
 
-        // --------------------------------------------------
+        // ==================================================
         // CLEANUP
-        // --------------------------------------------------
+        // ==================================================
 
         return () => {
 
@@ -394,6 +571,7 @@ function CustomerDashboard({ user, onLogout }) {
 
         const socket =
             socketRef.current;
+
 
         if (
             !socket ||
@@ -424,6 +602,7 @@ function CustomerDashboard({ user, onLogout }) {
                     ticket._id
                 );
 
+
                 joinedTicketsRef.current.add(
                     ticket._id
                 );
@@ -438,7 +617,9 @@ function CustomerDashboard({ user, onLogout }) {
     // CREATE TICKET
     // ======================================================
 
-    const handleCreateTicket = async (e) => {
+    const handleCreateTicket = async (
+        e
+    ) => {
 
         e.preventDefault();
 
@@ -449,8 +630,10 @@ function CustomerDashboard({ user, onLogout }) {
         ) {
 
             setError(
-                "Please enter both title and description"
+                "Please enter both title and description."
             );
+
+            setSuccess("");
 
             return;
 
@@ -462,33 +645,112 @@ function CustomerDashboard({ user, onLogout }) {
             setCreating(true);
 
             setError("");
+
             setSuccess("");
 
 
-            await api.post(
-                "/tickets",
-                {
-                    title:
-                        title.trim(),
+            const response =
+                await api.post(
+                    "/tickets",
+                    {
+                        title:
+                            title.trim(),
 
-                    description:
-                        description.trim()
+                        description:
+                            description.trim()
+                    }
+                );
+
+
+            const createdTicket =
+                response.data.ticket;
+
+
+            // ------------------------------------------------
+            // Add immediately if returned by backend
+            // ------------------------------------------------
+
+            if (createdTicket) {
+
+                setTickets(
+                    (previousTickets) => {
+
+                        const exists =
+                            previousTickets.some(
+                                (ticket) =>
+                                    ticket._id ===
+                                    createdTicket._id
+                            );
+
+
+                        if (exists) {
+
+                            return previousTickets;
+
+                        }
+
+
+                        const updated = [
+
+                            createdTicket,
+
+                            ...previousTickets
+
+                        ];
+
+
+                        ticketsRef.current =
+                            updated;
+
+
+                        return updated;
+
+                    }
+                );
+
+
+                const socket =
+                    socketRef.current;
+
+
+                if (
+                    socket &&
+                    socket.connected &&
+                    !joinedTicketsRef.current.has(
+                        createdTicket._id
+                    )
+                ) {
+
+                    socket.emit(
+                        "joinTicket",
+                        createdTicket._id
+                    );
+
+
+                    joinedTicketsRef.current.add(
+                        createdTicket._id
+                    );
+
                 }
-            );
 
+            } else {
 
-            await fetchTickets();
+                await fetchTickets();
+
+            }
 
 
             setTitle("");
+
             setDescription("");
 
             setShowCreateForm(false);
 
 
             setSuccess(
-                "Ticket created successfully 🎉"
+                "Ticket created successfully 🎉 Nesti has analyzed your request."
             );
+
 
         } catch (err) {
 
@@ -497,10 +759,13 @@ function CustomerDashboard({ user, onLogout }) {
                 err
             );
 
+
             setError(
                 err.response?.data?.message ||
                 "Failed to create ticket"
             );
+
+            setSuccess("");
 
         } finally {
 
@@ -515,7 +780,9 @@ function CustomerDashboard({ user, onLogout }) {
     // SEND COMMENT
     // ======================================================
 
-    const sendComment = async (ticketId) => {
+    const sendComment = async (
+        ticketId
+    ) => {
 
         const message =
             commentText[ticketId]
@@ -531,7 +798,9 @@ function CustomerDashboard({ user, onLogout }) {
 
         try {
 
-            setSendingComment(ticketId);
+            setSendingComment(
+                ticketId
+            );
 
             setError("");
 
@@ -549,69 +818,80 @@ function CustomerDashboard({ user, onLogout }) {
                 response.data.comment;
 
 
-            // ----------------------------------------------
-            // Optimistic/local update
-            // Socket will also send this comment.
-            // Duplicate is prevented below.
-            // ----------------------------------------------
+            if (newComment) {
 
-            setTickets(
-                (previousTickets) => {
+                setTickets(
+                    (previousTickets) => {
 
-                    return previousTickets.map(
-                        (ticket) => {
+                        const updated =
+                            previousTickets.map(
+                                (ticket) => {
 
-                            if (
-                                ticket._id !==
-                                ticketId
-                            ) {
+                                    if (
+                                        ticket._id !==
+                                        ticketId
+                                    ) {
 
-                                return ticket;
+                                        return ticket;
 
-                            }
+                                    }
 
 
-                            const comments =
-                                ticket.comments || [];
+                                    const comments =
+                                        ticket.comments ||
+                                        [];
 
 
-                            const exists =
-                                comments.some(
-                                    (comment) =>
-                                        comment._id ===
-                                        newComment._id
-                                );
+                                    const exists =
+                                        comments.some(
+                                            (comment) =>
+                                                comment._id ===
+                                                newComment._id
+                                        );
 
 
-                            if (exists) {
+                                    if (exists) {
 
-                                return ticket;
+                                        return ticket;
 
-                            }
+                                    }
 
 
-                            return {
+                                    return {
 
-                                ...ticket,
+                                        ...ticket,
 
-                                comments: [
-                                    ...comments,
-                                    newComment
-                                ]
+                                        comments: [
+                                            ...comments,
+                                            newComment
+                                        ]
 
-                            };
+                                    };
 
-                        }
-                    );
+                                }
+                            );
 
-                }
-            );
+
+                        ticketsRef.current =
+                            updated;
+
+
+                        return updated;
+
+                    }
+                );
+
+            }
 
 
             setCommentText(
                 (previous) => ({
+
                     ...previous,
-                    [ticketId]: ""
+
+                    [ticketId]:
+                        ""
+
                 })
             );
 
@@ -622,6 +902,7 @@ function CustomerDashboard({ user, onLogout }) {
                 "SEND COMMENT ERROR:",
                 err
             );
+
 
             setError(
                 err.response?.data?.message ||
@@ -638,7 +919,7 @@ function CustomerDashboard({ user, onLogout }) {
 
 
     // ======================================================
-    // HANDLE ENTER
+    // ENTER TO SEND
     // ======================================================
 
     const handleCommentKeyDown = (
@@ -653,7 +934,9 @@ function CustomerDashboard({ user, onLogout }) {
 
             e.preventDefault();
 
-            sendComment(ticketId);
+            sendComment(
+                ticketId
+            );
 
         }
 
@@ -664,13 +947,18 @@ function CustomerDashboard({ user, onLogout }) {
     // STATUS STYLE
     // ======================================================
 
-    const getStatusStyle = (status) => {
+    const getStatusStyle = (
+        status
+    ) => {
 
-        if (status === "open") {
+        if (
+            status === "open"
+        ) {
 
             return styles.statusOpen;
 
         }
+
 
         if (
             status === "in-progress"
@@ -680,6 +968,7 @@ function CustomerDashboard({ user, onLogout }) {
 
         }
 
+
         if (
             status === "resolved"
         ) {
@@ -688,7 +977,134 @@ function CustomerDashboard({ user, onLogout }) {
 
         }
 
+
+        if (
+            status === "closed"
+        ) {
+
+            return styles.statusClosed;
+
+        }
+
+
         return styles.statusDefault;
+
+    };
+
+
+    // ======================================================
+    // PRIORITY STYLE
+    // ======================================================
+
+    const getPriorityStyle = (
+        priority
+    ) => {
+
+        if (
+            priority === "urgent"
+        ) {
+
+            return styles.priorityUrgent;
+
+        }
+
+
+        if (
+            priority === "high"
+        ) {
+
+            return styles.priorityHigh;
+
+        }
+
+
+        if (
+            priority === "low"
+        ) {
+
+            return styles.priorityLow;
+
+        }
+
+
+        return styles.priorityMedium;
+
+    };
+
+
+    // ======================================================
+    // AI CONFIDENCE STYLE
+    // ======================================================
+
+    const getConfidenceStyle = (
+        confidence
+    ) => {
+
+        if (
+            confidence === "high"
+        ) {
+
+            return styles.confidenceHigh;
+
+        }
+
+
+        if (
+            confidence === "low"
+        ) {
+
+            return styles.confidenceLow;
+
+        }
+
+
+        return styles.confidenceMedium;
+
+    };
+
+
+    // ======================================================
+    // AI STATUS MESSAGE
+    // ======================================================
+
+    const getAIStatusMessage = (
+        ticket
+    ) => {
+
+        const confidence =
+            ticket
+                ?.aiAnalysis
+                ?.solutionConfidence;
+
+
+        if (
+            confidence === "high"
+        ) {
+
+            return "Nesti AI has analyzed your request and identified a clear support direction.";
+
+        }
+
+
+        if (
+            confidence === "medium"
+        ) {
+
+            return "Nesti AI has analyzed your request. Your support team may need to verify a few details.";
+
+        }
+
+
+        if (
+            confidence === "low"
+        ) {
+
+            return "Nesti AI has analyzed your request. Your support team will investigate it further.";
+
+        }
+
+
+        return "Nesti AI has analyzed your request and routed it to the appropriate support team.";
 
     };
 
@@ -705,12 +1121,16 @@ function CustomerDashboard({ user, onLogout }) {
 
                 <div style={styles.loadingCard}>
 
+                    <div style={styles.loadingIcon}>
+                        🤖
+                    </div>
+
                     <h2>
                         Loading Nesti...
                     </h2>
 
                     <p>
-                        Fetching your tickets
+                        Fetching your support tickets
                     </p>
 
                 </div>
@@ -730,7 +1150,9 @@ function CustomerDashboard({ user, onLogout }) {
 
         <div style={styles.page}>
 
-            {/* NAVBAR */}
+            {/* ==================================================
+                NAVBAR
+            ================================================== */}
 
             <nav style={styles.navbar}>
 
@@ -752,12 +1174,17 @@ function CustomerDashboard({ user, onLogout }) {
                     <div style={styles.userInfo}>
 
                         <strong>
-                            {user?.name ||
-                                "Customer"}
+                            {
+                                user?.name ||
+                                "Customer"
+                            }
                         </strong>
 
                         <span>
-                            {user?.email || ""}
+                            {
+                                user?.email ||
+                                ""
+                            }
                         </span>
 
                     </div>
@@ -765,7 +1192,9 @@ function CustomerDashboard({ user, onLogout }) {
 
                     <button
                         onClick={onLogout}
-                        style={styles.logoutButton}
+                        style={
+                            styles.logoutButton
+                        }
                     >
                         Logout
                     </button>
@@ -775,9 +1204,16 @@ function CustomerDashboard({ user, onLogout }) {
             </nav>
 
 
-            {/* MAIN */}
+            {/* ==================================================
+                MAIN
+            ================================================== */}
 
             <main style={styles.container}>
+
+
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
 
                 <div style={styles.header}>
 
@@ -785,13 +1221,19 @@ function CustomerDashboard({ user, onLogout }) {
 
                         <h1 style={styles.heading}>
                             Welcome,{" "}
-                            {user?.name ||
-                                "Customer"} 👋
+                            {
+                                user?.name ||
+                                "Customer"
+                            } 👋
                         </h1>
 
-                        <p style={styles.headerText}>
+                        <p
+                            style={
+                                styles.headerText
+                            }
+                        >
                             Create and track your support
-                            tickets.
+                            tickets with Nesti.
                         </p>
 
                     </div>
@@ -804,7 +1246,9 @@ function CustomerDashboard({ user, onLogout }) {
                                 styles.statNumber
                             }
                         >
-                            {tickets.length}
+                            {
+                                tickets.length
+                            }
                         </strong>
 
                         <span>
@@ -816,6 +1260,10 @@ function CustomerDashboard({ user, onLogout }) {
                 </div>
 
 
+                {/* ==================================================
+                    ERROR
+                ================================================== */}
+
                 {error && (
 
                     <div style={styles.error}>
@@ -824,6 +1272,10 @@ function CustomerDashboard({ user, onLogout }) {
 
                 )}
 
+
+                {/* ==================================================
+                    SUCCESS
+                ================================================== */}
 
                 {success && (
 
@@ -834,7 +1286,9 @@ function CustomerDashboard({ user, onLogout }) {
                 )}
 
 
-                {/* CREATE HEADER */}
+                {/* ==================================================
+                    TICKET HEADER
+                ================================================== */}
 
                 <div
                     style={
@@ -859,6 +1313,7 @@ function CustomerDashboard({ user, onLogout }) {
                             );
 
                             setError("");
+
                             setSuccess("");
 
                         }}
@@ -867,16 +1322,20 @@ function CustomerDashboard({ user, onLogout }) {
                         }
                     >
 
-                        {showCreateForm
-                            ? "Close"
-                            : "+ Create Ticket"}
+                        {
+                            showCreateForm
+                                ? "Close"
+                                : "+ Create Ticket"
+                        }
 
                     </button>
 
                 </div>
 
 
-                {/* CREATE FORM */}
+                {/* ==================================================
+                    CREATE FORM
+                ================================================== */}
 
                 {showCreateForm && (
 
@@ -887,13 +1346,58 @@ function CustomerDashboard({ user, onLogout }) {
                         style={styles.form}
                     >
 
-                        <h2>
-                            Create New Ticket
-                        </h2>
+                        <div
+                            style={
+                                styles.formHeader
+                            }
+                        >
+
+                            <div>
+
+                                <span
+                                    style={
+                                        styles.formEyebrow
+                                    }
+                                >
+                                    NESTI AI
+                                </span>
+
+                                <h2
+                                    style={
+                                        styles.formTitle
+                                    }
+                                >
+                                    Create a Support Ticket
+                                </h2>
+
+                                <p
+                                    style={
+                                        styles.formDescription
+                                    }
+                                >
+                                    Tell us what happened.
+                                    Nesti will analyze your
+                                    request and route it to
+                                    the right support team.
+                                </p>
+
+                            </div>
+
+                            <div
+                                style={
+                                    styles.formAIIcon
+                                }
+                            >
+                                🤖
+                            </div>
+
+                        </div>
 
 
                         <label
-                            style={styles.label}
+                            style={
+                                styles.label
+                            }
                         >
                             Ticket Title
                         </label>
@@ -908,19 +1412,26 @@ function CustomerDashboard({ user, onLogout }) {
                                     e.target.value
                                 )
                             }
-                            style={styles.input}
+                            style={
+                                styles.input
+                            }
+                            disabled={
+                                creating
+                            }
                         />
 
 
                         <label
-                            style={styles.label}
+                            style={
+                                styles.label
+                            }
                         >
                             Description
                         </label>
 
 
                         <textarea
-                            placeholder="Explain your problem..."
+                            placeholder="Explain your problem in as much detail as possible..."
                             value={description}
                             onChange={(e) =>
                                 setDescription(
@@ -930,23 +1441,31 @@ function CustomerDashboard({ user, onLogout }) {
                             style={
                                 styles.textarea
                             }
+                            disabled={
+                                creating
+                            }
                         />
 
 
                         <button
                             type="submit"
-                            disabled={creating}
+                            disabled={
+                                creating
+                            }
                             style={{
                                 ...styles.submitButton,
+
                                 ...(creating
                                     ? styles.disabledButton
                                     : {})
                             }}
                         >
 
-                            {creating
-                                ? "Creating..."
-                                : "Submit Ticket"}
+                            {
+                                creating
+                                    ? "🤖 Nesti is analyzing..."
+                                    : "Submit Ticket →"
+                            }
 
                         </button>
 
@@ -955,7 +1474,9 @@ function CustomerDashboard({ user, onLogout }) {
                 )}
 
 
-                {/* NO TICKETS */}
+                {/* ==================================================
+                    NO TICKETS
+                ================================================== */}
 
                 {tickets.length === 0 ? (
 
@@ -975,9 +1496,21 @@ function CustomerDashboard({ user, onLogout }) {
 
                         <p>
                             Create your first support
-                            ticket and our team will
-                            help you.
+                            ticket and Nesti will help
+                            route it to the right team.
                         </p>
+
+
+                        <button
+                            onClick={() =>
+                                setShowCreateForm(true)
+                            }
+                            style={
+                                styles.emptyButton
+                            }
+                        >
+                            Create Your First Ticket
+                        </button>
 
                     </div>
 
@@ -1001,7 +1534,9 @@ function CustomerDashboard({ user, onLogout }) {
                                     }
                                 >
 
-                                    {/* TOP */}
+                                    {/* ==================================================
+                                        TICKET TOP
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -1009,15 +1544,37 @@ function CustomerDashboard({ user, onLogout }) {
                                         }
                                     >
 
-                                        <h2
+                                        <div
                                             style={
-                                                styles.ticketTitle
+                                                styles.titleArea
                                             }
                                         >
-                                            {
-                                                ticket.title
-                                            }
-                                        </h2>
+
+                                            <h2
+                                                style={
+                                                    styles.ticketTitle
+                                                }
+                                            >
+                                                {
+                                                    ticket.title
+                                                }
+                                            </h2>
+
+
+                                            <small
+                                                style={
+                                                    styles.ticketId
+                                                }
+                                            >
+                                                Ticket #
+                                                {
+                                                    ticket._id
+                                                        ?.slice(-8)
+                                                        .toUpperCase()
+                                                }
+                                            </small>
+
+                                        </div>
 
 
                                         <span
@@ -1036,6 +1593,10 @@ function CustomerDashboard({ user, onLogout }) {
                                     </div>
 
 
+                                    {/* ==================================================
+                                        DESCRIPTION
+                                    ================================================== */}
+
                                     <p
                                         style={
                                             styles.description
@@ -1046,6 +1607,10 @@ function CustomerDashboard({ user, onLogout }) {
                                         }
                                     </p>
 
+
+                                    {/* ==================================================
+                                        TAGS
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -1060,15 +1625,18 @@ function CustomerDashboard({ user, onLogout }) {
                                         >
                                             {
                                                 ticket.category ||
-                                                "Pending AI"
+                                                "general"
                                             }
                                         </span>
 
 
                                         <span
-                                            style={
-                                                styles.priority
-                                            }
+                                            style={{
+                                                ...styles.priority,
+                                                ...getPriorityStyle(
+                                                    ticket.priority
+                                                )
+                                            }}
                                         >
                                             {
                                                 ticket.priority ||
@@ -1086,7 +1654,9 @@ function CustomerDashboard({ user, onLogout }) {
                                     />
 
 
-                                    {/* AGENT */}
+                                    {/* ==================================================
+                                        AGENT + DEPARTMENT
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -1096,9 +1666,14 @@ function CustomerDashboard({ user, onLogout }) {
 
                                         <div>
 
-                                            <strong>
+                                            <strong
+                                                style={
+                                                    styles.infoTitle
+                                                }
+                                            >
                                                 Assigned Agent
                                             </strong>
+
 
                                             <p
                                                 style={
@@ -1113,32 +1688,40 @@ function CustomerDashboard({ user, onLogout }) {
                                                 }
                                             </p>
 
-                                            {ticket
-                                                .assignedTo
-                                                ?.email && (
 
-                                                <small
-                                                    style={
-                                                        styles.email
-                                                    }
-                                                >
-                                                    {
-                                                        ticket
-                                                            .assignedTo
-                                                            .email
-                                                    }
-                                                </small>
+                                            {
+                                                ticket
+                                                    .assignedTo
+                                                    ?.email && (
 
-                                            )}
+                                                    <small
+                                                        style={
+                                                            styles.email
+                                                        }
+                                                    >
+                                                        {
+                                                            ticket
+                                                                .assignedTo
+                                                                .email
+                                                        }
+                                                    </small>
+
+                                                )
+                                            }
 
                                         </div>
 
 
                                         <div>
 
-                                            <strong>
-                                                Department
+                                            <strong
+                                                style={
+                                                    styles.infoTitle
+                                                }
+                                            >
+                                                Support Department
                                             </strong>
+
 
                                             <p
                                                 style={
@@ -1158,87 +1741,173 @@ function CustomerDashboard({ user, onLogout }) {
                                     </div>
 
 
-                                    {/* AI */}
+                                    {/* ==================================================
+                                        CUSTOMER-FACING AI STATUS
+                                    ================================================== */}
 
                                     {ticket.aiAnalysis && (
 
                                         <div
                                             style={
-                                                styles.aiBox
+                                                styles.aiCustomerBox
                                             }
                                         >
 
-                                            <h3
+                                            <div
                                                 style={
-                                                    styles.aiTitle
+                                                    styles.aiCustomerHeader
                                                 }
                                             >
-                                                🤖 AI Analysis
-                                            </h3>
+
+                                                <div>
+
+                                                    <span
+                                                        style={
+                                                            styles.aiEyebrow
+                                                        }
+                                                    >
+                                                        NESTI AI
+                                                    </span>
+
+                                                    <h3
+                                                        style={
+                                                            styles.aiCustomerTitle
+                                                        }
+                                                    >
+                                                        🤖 Your request has been analyzed
+                                                    </h3>
+
+                                                </div>
 
 
-                                            {ticket.aiAnalysis.category && (
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        .solutionConfidence && (
 
-                                                <p>
-                                                    <strong>
-                                                        Category:
-                                                    </strong>{" "}
-                                                    {
+                                                        <span
+                                                            style={{
+                                                                ...styles.confidenceBadge,
+                                                                ...getConfidenceStyle(
+                                                                    ticket
+                                                                        .aiAnalysis
+                                                                        .solutionConfidence
+                                                                )
+                                                            }}
+                                                        >
+                                                            AI{" "}
+                                                            {
+                                                                ticket
+                                                                    .aiAnalysis
+                                                                    .solutionConfidence
+                                                                    .toUpperCase()
+                                                            }
+                                                        </span>
+
+                                                    )
+                                                }
+
+                                            </div>
+
+
+                                            <p
+                                                style={
+                                                    styles.aiCustomerMessage
+                                                }
+                                            >
+                                                {
+                                                    getAIStatusMessage(
                                                         ticket
-                                                            .aiAnalysis
-                                                            .category
-                                                    }
-                                                </p>
-
-                                            )}
+                                                    )
+                                                }
+                                            </p>
 
 
-                                            {ticket.aiAnalysis.priority && (
+                                            <div
+                                                style={
+                                                    styles.aiSummary
+                                                }
+                                            >
 
-                                                <p>
-                                                    <strong>
-                                                        Priority:
-                                                    </strong>{" "}
-                                                    {
-                                                        ticket
-                                                            .aiAnalysis
-                                                            .priority
-                                                    }
-                                                </p>
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        .summary && (
 
-                                            )}
+                                                        <div
+                                                            style={
+                                                                styles.aiSummaryItem
+                                                            }
+                                                        >
+
+                                                            <span
+                                                                style={
+                                                                    styles.aiSummaryLabel
+                                                                }
+                                                            >
+                                                                Issue Summary
+                                                            </span>
+
+                                                            <strong>
+                                                                {
+                                                                    ticket
+                                                                        .aiAnalysis
+                                                                        .summary
+                                                                }
+                                                            </strong>
+
+                                                        </div>
+
+                                                    )
+                                                }
 
 
-                                            {ticket.aiAnalysis.intent && (
+                                                {
+                                                    ticket
+                                                        .aiAnalysis
+                                                        .category && (
 
-                                                <p>
-                                                    <strong>
-                                                        Intent:
-                                                    </strong>{" "}
-                                                    {
-                                                        ticket
-                                                            .aiAnalysis
-                                                            .intent
-                                                    }
-                                                </p>
+                                                        <div
+                                                            style={
+                                                                styles.aiSummaryItem
+                                                            }
+                                                        >
 
-                                            )}
+                                                            <span
+                                                                style={
+                                                                    styles.aiSummaryLabel
+                                                                }
+                                                            >
+                                                                Category
+                                                            </span>
+
+                                                            <strong>
+                                                                {
+                                                                    ticket
+                                                                        .aiAnalysis
+                                                                        .category
+                                                            }
+                                                            </strong>
+
+                                                        </div>
+
+                                                    )
+                                                }
+
+                                            </div>
 
 
-                                            {ticket.aiAnalysis.summary && (
-
-                                                <p>
-                                                    <strong>
-                                                        Summary:
-                                                    </strong>{" "}
-                                                    {
-                                                        ticket
-                                                            .aiAnalysis
-                                                            .summary
-                                                    }
-                                                </p>
-
-                                            )}
+                                            <div
+                                                style={
+                                                    styles.aiPrivacyNote
+                                                }
+                                            >
+                                                ✨ Nesti uses AI to
+                                                understand and route
+                                                your request. Your
+                                                support agent will
+                                                handle the next steps.
+                                            </div>
 
                                         </div>
 
@@ -1246,7 +1915,7 @@ function CustomerDashboard({ user, onLogout }) {
 
 
                                     {/* ==================================================
-                                        COMMENTS / REPLIES
+                                        CONVERSATION
                                     ================================================== */}
 
                                     <div
@@ -1269,6 +1938,7 @@ function CustomerDashboard({ user, onLogout }) {
                                                 💬 Conversation
                                             </h3>
 
+
                                             <span
                                                 style={
                                                     styles.commentCount
@@ -1279,7 +1949,8 @@ function CustomerDashboard({ user, onLogout }) {
                                                         ticket.comments ||
                                                         []
                                                     ).length
-                                                } messages
+                                                }{" "}
+                                                messages
                                             </span>
 
                                         </div>
@@ -1291,107 +1962,126 @@ function CustomerDashboard({ user, onLogout }) {
                                             }
                                         >
 
-                                            {(
-                                                ticket.comments ||
-                                                []
-                                            ).length === 0 ? (
+                                            {
+                                                (
+                                                    ticket.comments ||
+                                                    []
+                                                ).length === 0
+                                                    ? (
 
-                                                <div
-                                                    style={
-                                                        styles.noComments
-                                                    }
-                                                >
-                                                    No replies yet.
-                                                    Your support agent
-                                                    will respond here.
-                                                </div>
+                                                        <div
+                                                            style={
+                                                                styles.noComments
+                                                            }
+                                                        >
+                                                            No replies yet.
+                                                            Your support
+                                                            agent will
+                                                            respond here.
+                                                        </div>
 
-                                            ) : (
+                                                    )
+                                                    : (
 
-                                                ticket.comments.map(
-                                                    (
-                                                        comment,
-                                                        index
-                                                    ) => {
+                                                        ticket.comments.map(
+                                                            (
+                                                                comment,
+                                                                index
+                                                            ) => {
 
-                                                        const isMine =
-                                                            comment.author?._id ===
-                                                            user?._id ||
-                                                            comment.author ===
-                                                            user?._id;
+                                                                const commentAuthorId =
+                                                                    comment.author?._id ||
+                                                                    comment.author;
 
-                                                        return (
 
-                                                            <div
-                                                                key={
-                                                                    comment._id ||
-                                                                    index
-                                                                }
-                                                                style={{
-                                                                    ...styles.comment,
+                                                                const currentUserId =
+                                                                    user?._id ||
+                                                                    user?.id;
 
-                                                                    ...(isMine
-                                                                        ? styles.myComment
-                                                                        : styles.otherComment)
-                                                                }}
-                                                            >
 
-                                                                <div
-                                                                    style={
-                                                                        styles.commentMeta
-                                                                    }
-                                                                >
+                                                                const isMine =
+                                                                    commentAuthorId
+                                                                        ?.toString() ===
+                                                                    currentUserId
+                                                                        ?.toString();
 
-                                                                    <strong>
-                                                                        {
-                                                                            comment
-                                                                                .author
-                                                                                ?.name ||
-                                                                            (
-                                                                                isMine
-                                                                                    ? "You"
-                                                                                    : comment.authorRole
-                                                                                        ?.toUpperCase()
-                                                                            )
+
+                                                                return (
+
+                                                                    <div
+                                                                        key={
+                                                                            comment._id ||
+                                                                            index
                                                                         }
-                                                                    </strong>
+                                                                        style={{
+                                                                            ...styles.comment,
 
-                                                                    <span>
-                                                                        {
-                                                                            comment.createdAt
-                                                                                ? new Date(
+                                                                            ...(isMine
+                                                                                ? styles.myComment
+                                                                                : styles.otherComment)
+                                                                        }}
+                                                                    >
+
+                                                                        <div
+                                                                            style={
+                                                                                styles.commentMeta
+                                                                            }
+                                                                        >
+
+                                                                            <strong>
+                                                                                {
+                                                                                    comment
+                                                                                        .author
+                                                                                        ?.name ||
+                                                                                    (
+                                                                                        isMine
+                                                                                            ? "You"
+                                                                                            : comment.authorRole
+                                                                                                ?.toUpperCase()
+                                                                                    )
+                                                                                }
+                                                                            </strong>
+
+
+                                                                            <span>
+                                                                                {
                                                                                     comment.createdAt
-                                                                                ).toLocaleString()
-                                                                                : ""
-                                                                        }
-                                                                    </span>
+                                                                                        ? new Date(
+                                                                                            comment.createdAt
+                                                                                        ).toLocaleString()
+                                                                                        : ""
+                                                                                }
+                                                                            </span>
 
-                                                                </div>
+                                                                        </div>
 
 
-                                                                <p
-                                                                    style={
-                                                                        styles.commentMessage
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        comment.message
-                                                                    }
-                                                                </p>
+                                                                        <p
+                                                                            style={
+                                                                                styles.commentMessage
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                comment.message
+                                                                            }
+                                                                        </p>
 
-                                                            </div>
+                                                                    </div>
 
-                                                        );
+                                                                );
 
-                                                    }
-                                                )
+                                                            }
+                                                        )
 
-                                            )}
+                                                    )
+                                            }
 
                                         </div>
 
 
-                                        {/* SEND */}
+                                        {/* ==================================================
+                                            COMMENT COMPOSER
+                                        ================================================== */}
 
                                         <div
                                             style={
@@ -1408,9 +2098,12 @@ function CustomerDashboard({ user, onLogout }) {
                                                 onChange={(e) =>
                                                     setCommentText(
                                                         (previous) => ({
+
                                                             ...previous,
+
                                                             [ticket._id]:
                                                                 e.target.value
+
                                                         })
                                                     )
                                                 }
@@ -1420,7 +2113,7 @@ function CustomerDashboard({ user, onLogout }) {
                                                         ticket._id
                                                     )
                                                 }
-                                                placeholder="Write a reply... Press Enter to send"
+                                                placeholder="Write a message to your support team..."
                                                 style={
                                                     styles.commentInput
                                                 }
@@ -1449,7 +2142,7 @@ function CustomerDashboard({ user, onLogout }) {
 
                                                     ...(
                                                         sendingComment ===
-                                                        ticket._id ||
+                                                            ticket._id ||
                                                         !commentText[
                                                             ticket._id
                                                         ]?.trim()
@@ -1458,18 +2151,24 @@ function CustomerDashboard({ user, onLogout }) {
                                                     )
                                                 }}
                                             >
+
                                                 {
                                                     sendingComment ===
                                                     ticket._id
                                                         ? "Sending..."
                                                         : "Send"
                                                 }
+
                                             </button>
 
                                         </div>
 
                                     </div>
 
+
+                                    {/* ==================================================
+                                        CREATED DATE
+                                    ================================================== */}
 
                                     <div
                                         style={
@@ -1516,6 +2215,7 @@ const styles = {
         color: "#1f2937"
     },
 
+
     center: {
         minHeight: "100vh",
         display: "flex",
@@ -1524,14 +2224,22 @@ const styles = {
         background: "#f5f7fb"
     },
 
+
     loadingCard: {
         background: "white",
         padding: "40px",
-        borderRadius: "14px",
+        borderRadius: "18px",
         textAlign: "center",
         boxShadow:
             "0 10px 30px rgba(0,0,0,0.08)"
     },
+
+
+    loadingIcon: {
+        fontSize: "40px",
+        marginBottom: "10px"
+    },
+
 
     navbar: {
         minHeight: "70px",
@@ -1544,10 +2252,12 @@ const styles = {
             "0 2px 10px rgba(0,0,0,0.06)"
     },
 
+
     logo: {
         margin: 0,
         fontSize: "24px"
     },
+
 
     subtitle: {
         margin: "4px 0 0",
@@ -1555,11 +2265,13 @@ const styles = {
         fontSize: "14px"
     },
 
+
     navRight: {
         display: "flex",
         alignItems: "center",
         gap: "20px"
     },
+
 
     userInfo: {
         display: "flex",
@@ -1567,6 +2279,7 @@ const styles = {
         alignItems: "flex-end",
         gap: "3px"
     },
+
 
     logoutButton: {
         padding: "10px 18px",
@@ -1578,11 +2291,13 @@ const styles = {
         fontWeight: "600"
     },
 
+
     container: {
         maxWidth: "1200px",
         margin: "0 auto",
         padding: "40px 25px"
     },
+
 
     header: {
         display: "flex",
@@ -1592,16 +2307,19 @@ const styles = {
         gap: "30px"
     },
 
+
     heading: {
         margin: 0,
         fontSize: "32px"
     },
+
 
     headerText: {
         color: "#6b7280",
         fontSize: "16px",
         marginTop: "8px"
     },
+
 
     stats: {
         minWidth: "140px",
@@ -1615,9 +2333,11 @@ const styles = {
             "0 5px 20px rgba(0,0,0,0.06)"
     },
 
+
     statNumber: {
         fontSize: "28px"
     },
+
 
     error: {
         background: "#fee2e2",
@@ -1627,6 +2347,7 @@ const styles = {
         marginBottom: "20px"
     },
 
+
     success: {
         background: "#dcfce7",
         color: "#166534",
@@ -1635,6 +2356,7 @@ const styles = {
         marginBottom: "20px"
     },
 
+
     createHeader: {
         display: "flex",
         justifyContent: "space-between",
@@ -1642,9 +2364,11 @@ const styles = {
         marginBottom: "20px"
     },
 
+
     sectionTitle: {
         margin: 0
     },
+
 
     createButton: {
         padding: "11px 18px",
@@ -1656,42 +2380,88 @@ const styles = {
         fontWeight: "600"
     },
 
+
     form: {
         background: "white",
         padding: "28px",
-        borderRadius: "14px",
+        borderRadius: "16px",
         marginBottom: "30px",
         boxShadow:
             "0 5px 20px rgba(0,0,0,0.06)"
     },
 
+
+    formHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "20px"
+    },
+
+
+    formEyebrow: {
+        color: "#8b5cf6",
+        fontSize: "11px",
+        fontWeight: "800",
+        letterSpacing: "0.08em"
+    },
+
+
+    formTitle: {
+        margin:
+            "5px 0 7px",
+        fontSize: "22px"
+    },
+
+
+    formDescription: {
+        margin: 0,
+        color: "#6b7280",
+        lineHeight: "1.5"
+    },
+
+
+    formAIIcon: {
+        fontSize: "35px",
+        background: "#f5f3ff",
+        padding: "12px",
+        borderRadius: "12px"
+    },
+
+
     label: {
         display: "block",
-        marginTop: "18px",
+        marginTop: "20px",
         marginBottom: "7px",
         fontWeight: "600",
         fontSize: "14px"
     },
 
+
     input: {
         width: "100%",
         boxSizing: "border-box",
         padding: "12px",
-        border: "1px solid #d1d5db",
+        border:
+            "1px solid #d1d5db",
         borderRadius: "8px",
         fontSize: "14px"
     },
+
 
     textarea: {
         width: "100%",
         minHeight: "130px",
         boxSizing: "border-box",
         padding: "12px",
-        border: "1px solid #d1d5db",
+        border:
+            "1px solid #d1d5db",
         borderRadius: "8px",
         fontSize: "14px",
-        resize: "vertical"
+        resize: "vertical",
+        fontFamily: "inherit"
     },
+
 
     submitButton: {
         marginTop: "20px",
@@ -1704,21 +2474,40 @@ const styles = {
         fontWeight: "600"
     },
 
+
     disabledButton: {
         opacity: 0.6,
         cursor: "not-allowed"
     },
 
+
     empty: {
         background: "white",
         padding: "60px 30px",
         textAlign: "center",
-        borderRadius: "14px"
+        borderRadius: "14px",
+        boxShadow:
+            "0 5px 20px rgba(0,0,0,0.05)"
     },
 
+
     emptyIcon: {
-        fontSize: "45px"
+        fontSize: "45px",
+        marginBottom: "10px"
     },
+
+
+    emptyButton: {
+        marginTop: "15px",
+        padding: "11px 18px",
+        border: "none",
+        borderRadius: "8px",
+        background: "#4f46e5",
+        color: "white",
+        cursor: "pointer",
+        fontWeight: "600"
+    },
+
 
     ticketGrid: {
         display: "grid",
@@ -1726,6 +2515,7 @@ const styles = {
             "repeat(auto-fit, minmax(450px, 1fr))",
         gap: "25px"
     },
+
 
     ticket: {
         background: "white",
@@ -1735,6 +2525,7 @@ const styles = {
             "0 5px 20px rgba(0,0,0,0.06)"
     },
 
+
     ticketTop: {
         display: "flex",
         justifyContent: "space-between",
@@ -1742,10 +2533,25 @@ const styles = {
         gap: "15px"
     },
 
+
+    titleArea: {
+        minWidth: 0
+    },
+
+
     ticketTitle: {
         margin: 0,
         fontSize: "21px"
     },
+
+
+    ticketId: {
+        display: "block",
+        marginTop: "6px",
+        color: "#9ca3af",
+        fontSize: "11px"
+    },
+
 
     description: {
         color: "#6b7280",
@@ -1753,11 +2559,13 @@ const styles = {
         marginTop: "18px"
     },
 
+
     tags: {
         display: "flex",
         gap: "10px",
         margin: "18px 0"
     },
+
 
     category: {
         background: "#ede9fe",
@@ -1768,36 +2576,75 @@ const styles = {
         fontWeight: "600"
     },
 
+
     priority: {
-        background: "#fee2e2",
-        color: "#b91c1c",
         padding: "6px 10px",
         borderRadius: "6px",
         fontSize: "12px",
         fontWeight: "600"
     },
 
+
+    priorityUrgent: {
+        background: "#fee2e2",
+        color: "#991b1b"
+    },
+
+
+    priorityHigh: {
+        background: "#ffedd5",
+        color: "#c2410c"
+    },
+
+
+    priorityMedium: {
+        background: "#fef3c7",
+        color: "#92400e"
+    },
+
+
+    priorityLow: {
+        background: "#dcfce7",
+        color: "#166534"
+    },
+
+
     line: {
         border: "none",
-        borderTop: "1px solid #e5e7eb",
+        borderTop:
+            "1px solid #e5e7eb",
         margin: "20px 0"
     },
 
+
     infoGrid: {
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "20px",
+        gridTemplateColumns:
+            "1fr 1fr",
+        gap: "20px"
+    },
+
+
+    infoTitle: {
         fontSize: "14px"
     },
 
+
     infoText: {
         margin: "7px 0 2px",
-        color: "#6b7280"
+        fontSize: "15px",
+        color: "#4b5563"
     },
+
 
     email: {
         color: "#9ca3af"
     },
+
+
+    // ==================================================
+    // STATUS
+    // ==================================================
 
     status: {
         padding: "7px 12px",
@@ -1807,40 +2654,146 @@ const styles = {
         whiteSpace: "nowrap"
     },
 
+
     statusOpen: {
         background: "#fee2e2",
         color: "#991b1b"
     },
+
 
     statusProgress: {
         background: "#fef3c7",
         color: "#92400e"
     },
 
+
     statusResolved: {
         background: "#dcfce7",
         color: "#166534"
     },
+
+
+    statusClosed: {
+        background: "#e5e7eb",
+        color: "#374151"
+    },
+
 
     statusDefault: {
         background: "#e5e7eb",
         color: "#374151"
     },
 
-    aiBox: {
-        marginTop: "22px",
-        padding: "18px",
-        background: "#f5f3ff",
-        borderRadius: "10px",
-        color: "#374151",
-        fontSize: "14px",
+
+    // ==================================================
+    // CUSTOMER AI SECTION
+    // ==================================================
+
+    aiCustomerBox: {
+        marginTop: "24px",
+        padding: "19px",
+        background:
+            "linear-gradient(135deg, #f5f3ff, #faf5ff)",
+        border:
+            "1px solid #ddd6fe",
+        borderRadius: "13px"
+    },
+
+
+    aiCustomerHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "15px"
+    },
+
+
+    aiEyebrow: {
+        color: "#8b5cf6",
+        fontSize: "10px",
+        fontWeight: "800",
+        letterSpacing: "0.08em"
+    },
+
+
+    aiCustomerTitle: {
+        margin:
+            "4px 0 0",
+        color: "#5b21b6",
+        fontSize: "17px"
+    },
+
+
+    confidenceBadge: {
+        padding: "6px 10px",
+        borderRadius: "20px",
+        fontSize: "10px",
+        fontWeight: "800",
+        whiteSpace: "nowrap"
+    },
+
+
+    confidenceHigh: {
+        background: "#dcfce7",
+        color: "#166534"
+    },
+
+
+    confidenceMedium: {
+        background: "#fef3c7",
+        color: "#92400e"
+    },
+
+
+    confidenceLow: {
+        background: "#fee2e2",
+        color: "#991b1b"
+    },
+
+
+    aiCustomerMessage: {
+        margin:
+            "14px 0",
+        color: "#4b5563",
+        lineHeight: "1.6"
+    },
+
+
+    aiSummary: {
+        display: "grid",
+        gridTemplateColumns:
+            "1fr 1fr",
+        gap: "10px"
+    },
+
+
+    aiSummaryItem: {
+        background: "white",
+        padding: "11px 12px",
+        borderRadius: "9px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "5px"
+    },
+
+
+    aiSummaryLabel: {
+        color: "#8b5cf6",
+        fontSize: "10px",
+        textTransform: "uppercase",
+        fontWeight: "700",
+        letterSpacing: "0.04em"
+    },
+
+
+    aiPrivacyNote: {
+        marginTop: "12px",
+        fontSize: "11px",
+        color: "#8b5cf6",
+        fontStyle: "italic",
         lineHeight: "1.5"
     },
 
-    aiTitle: {
-        marginTop: 0,
-        color: "#6d28d9"
-    },
 
     // ==================================================
     // COMMENTS
@@ -1848,9 +2801,11 @@ const styles = {
 
     commentsSection: {
         marginTop: "25px",
-        borderTop: "1px solid #e5e7eb",
+        borderTop:
+            "1px solid #e5e7eb",
         paddingTop: "20px"
     },
+
 
     commentsHeader: {
         display: "flex",
@@ -1859,10 +2814,12 @@ const styles = {
         marginBottom: "15px"
     },
 
+
     commentCount: {
         fontSize: "12px",
         color: "#6b7280"
     },
+
 
     commentsList: {
         display: "flex",
@@ -1873,6 +2830,7 @@ const styles = {
         padding: "5px"
     },
 
+
     noComments: {
         padding: "18px",
         background: "#f9fafb",
@@ -1882,21 +2840,25 @@ const styles = {
         textAlign: "center"
     },
 
+
     comment: {
         padding: "12px 14px",
         borderRadius: "12px",
         maxWidth: "85%"
     },
 
+
     myComment: {
         alignSelf: "flex-end",
         background: "#eef2ff"
     },
 
+
     otherComment: {
         alignSelf: "flex-start",
         background: "#f3f4f6"
     },
+
 
     commentMeta: {
         display: "flex",
@@ -1906,6 +2868,7 @@ const styles = {
         fontSize: "12px"
     },
 
+
     commentMessage: {
         margin: 0,
         fontSize: "14px",
@@ -1914,6 +2877,7 @@ const styles = {
         wordBreak: "break-word"
     },
 
+
     commentComposer: {
         display: "flex",
         gap: "10px",
@@ -1921,17 +2885,21 @@ const styles = {
         alignItems: "flex-end"
     },
 
+
     commentInput: {
         flex: 1,
         minHeight: "45px",
         maxHeight: "110px",
         resize: "vertical",
         padding: "11px",
-        border: "1px solid #d1d5db",
+        border:
+            "1px solid #d1d5db",
         borderRadius: "9px",
         fontSize: "14px",
-        boxSizing: "border-box"
+        boxSizing: "border-box",
+        fontFamily: "inherit"
     },
+
 
     sendButton: {
         padding: "11px 18px",
@@ -1943,10 +2911,12 @@ const styles = {
         cursor: "pointer"
     },
 
+
     sendDisabled: {
         opacity: 0.5,
         cursor: "not-allowed"
     },
+
 
     date: {
         marginTop: "20px",

@@ -12,6 +12,10 @@ const {
 } = require("../services/ai.service");
 
 const {
+    findOrCreateIssue
+} = require("../services/issue.service");
+
+const {
     getIO
 } = require("../services/socket.service");
 
@@ -21,21 +25,39 @@ const {
 // ======================================================
 
 const isValidObjectId = (id) => {
+
     return mongoose.Types.ObjectId.isValid(id);
+
 };
 
 
 const populateTicket = (query) => {
 
     return query
+
         .populate(
             "createdBy",
             "name email role"
         )
+
         .populate(
             "assignedTo",
             "name email department role"
         )
+
+        // ========================================
+        // RECURRING ISSUE
+        // ========================================
+
+        .populate(
+            "detectedIssue",
+            "issueKey title description category department ticketCount firstDetectedAt lastDetectedAt"
+        )
+
+        // ========================================
+        // COMMENTS
+        // ========================================
+
         .populate(
             "comments.author",
             "name email role"
@@ -47,22 +69,29 @@ const populateTicket = (query) => {
 const canAccessTicket = (ticket, user) => {
 
     if (!ticket || !user) {
+
         return false;
+
     }
+
 
     const userId =
         user.id.toString();
+
 
     const isCustomer =
         ticket.createdBy &&
         ticket.createdBy.toString() === userId;
 
+
     const isAssignedAgent =
         ticket.assignedTo &&
         ticket.assignedTo.toString() === userId;
 
+
     const isAdmin =
         user.role === "admin";
+
 
     return (
         isCustomer ||
@@ -111,7 +140,7 @@ const createTicket = async (req, res) => {
 
 
         // ----------------------------------------------
-        // AI ANALYSIS
+        // STEP 1: AI ANALYSIS
         // ----------------------------------------------
 
         const aiResult =
@@ -122,7 +151,17 @@ const createTicket = async (req, res) => {
 
 
         // ----------------------------------------------
-        // AUTO ASSIGN AGENT
+        // STEP 2: RECURRING ISSUE DETECTION
+        // ----------------------------------------------
+
+        const detectedIssue =
+            await findOrCreateIssue(
+                aiResult
+            );
+
+
+        // ----------------------------------------------
+        // STEP 3: AUTO ASSIGN AGENT
         // ----------------------------------------------
 
         const agent =
@@ -132,7 +171,7 @@ const createTicket = async (req, res) => {
 
 
         // ----------------------------------------------
-        // CREATE TICKET
+        // STEP 4: CREATE TICKET
         // ----------------------------------------------
 
         const ticket =
@@ -150,6 +189,11 @@ const createTicket = async (req, res) => {
                 category:
                     aiResult.category,
 
+
+                // ========================================
+                // AI ANALYSIS
+                // ========================================
+
                 aiAnalysis: {
 
                     category:
@@ -165,30 +209,66 @@ const createTicket = async (req, res) => {
                         aiResult.summary,
 
                     suggestedDepartment:
-                        aiResult.suggestedDepartment
+                        aiResult.suggestedDepartment,
+
+
+                    // ====================================
+                    // AI RECOMMENDED SOLUTION ⭐
+                    // ====================================
+
+                    recommendedSolution:
+                        aiResult.recommendedSolution,
+
+                    recommendedAction:
+                        aiResult.recommendedAction,
+
+                    solutionConfidence:
+                        aiResult.solutionConfidence
 
                 },
+
+
+                // ----------------------------------------------
+                // CUSTOMER
+                // ----------------------------------------------
 
                 createdBy:
                     req.user.id,
 
+
+                // ----------------------------------------------
+                // ASSIGNED AGENT
+                // ----------------------------------------------
+
                 assignedTo:
                     agent
                         ? agent._id
+                        : null,
+
+
+                // ----------------------------------------------
+                // DETECTED RECURRING ISSUE
+                // ----------------------------------------------
+
+                detectedIssue:
+                    detectedIssue
+                        ? detectedIssue._id
                         : null
 
             });
 
 
         // ----------------------------------------------
-        // POPULATE
+        // POPULATE TICKET
         // ----------------------------------------------
 
         const populatedTicket =
             await populateTicket(
+
                 ticketModel.findById(
                     ticket._id
                 )
+
             );
 
 
@@ -201,30 +281,41 @@ const createTicket = async (req, res) => {
             const io = getIO();
 
 
+            // Customer
+
             io.to(
                 `user_${req.user.id}`
             ).emit(
+
                 "ticketCreated",
+
                 {
                     ticket:
                         populatedTicket
                 }
+
             );
 
+
+            // Assigned Agent
 
             if (agent) {
 
                 io.to(
                     `user_${agent._id}`
                 ).emit(
+
                     "ticketCreated",
+
                     {
                         ticket:
                             populatedTicket
                     }
+
                 );
 
             }
+
 
         } catch (socketError) {
 
@@ -236,6 +327,10 @@ const createTicket = async (req, res) => {
         }
 
 
+        // ----------------------------------------------
+        // RESPONSE
+        // ----------------------------------------------
+
         return res.status(201).json({
 
             success: true,
@@ -246,12 +341,25 @@ const createTicket = async (req, res) => {
             ticket:
                 populatedTicket,
 
+
+            // ==========================================
+            // COMPLETE AI ANALYSIS
+            // ==========================================
+
             aiAnalysis:
                 aiResult,
 
+
+            // ==========================================
+            // ASSIGNED AGENT
+            // ==========================================
+
             assignedAgent:
+
                 agent
+
                     ? {
+
                         id:
                             agent._id,
 
@@ -260,7 +368,36 @@ const createTicket = async (req, res) => {
 
                         department:
                             agent.department
+
                     }
+
+                    : null,
+
+
+            // ==========================================
+            // DETECTED RECURRING ISSUE
+            // ==========================================
+
+            detectedIssue:
+
+                detectedIssue
+
+                    ? {
+
+                        id:
+                            detectedIssue._id,
+
+                        issueKey:
+                            detectedIssue.issueKey,
+
+                        title:
+                            detectedIssue.title,
+
+                        ticketCount:
+                            detectedIssue.ticketCount
+
+                    }
+
                     : null
 
         });
@@ -272,6 +409,7 @@ const createTicket = async (req, res) => {
             "CREATE TICKET ERROR:",
             error
         );
+
 
         return res.status(500).json({
 
@@ -299,12 +437,17 @@ const getMyTickets = async (req, res) => {
             await populateTicket(
 
                 ticketModel.find({
+
                     createdBy:
                         req.user.id
+
                 })
 
             ).sort({
-                createdAt: -1
+
+                createdAt:
+                    -1
+
             });
 
 
@@ -323,6 +466,7 @@ const getMyTickets = async (req, res) => {
             "GET MY TICKETS ERROR:",
             error
         );
+
 
         return res.status(500).json({
 
@@ -351,7 +495,9 @@ const getTicketById = async (req, res) => {
         } = req.params;
 
 
-        if (!isValidObjectId(id)) {
+        if (
+            !isValidObjectId(id)
+        ) {
 
             return res.status(400).json({
 
@@ -386,6 +532,10 @@ const getTicketById = async (req, res) => {
 
         }
 
+
+        // ----------------------------------------------
+        // ACCESS CONTROL
+        // ----------------------------------------------
 
         if (
             !canAccessTicket(
@@ -422,6 +572,7 @@ const getTicketById = async (req, res) => {
             error
         );
 
+
         return res.status(500).json({
 
             success: false,
@@ -446,9 +597,14 @@ const getAllTickets = async (req, res) => {
 
         const tickets =
             await populateTicket(
+
                 ticketModel.find()
+
             ).sort({
-                createdAt: -1
+
+                createdAt:
+                    -1
+
             });
 
 
@@ -467,6 +623,7 @@ const getAllTickets = async (req, res) => {
             "GET ALL TICKETS ERROR:",
             error
         );
+
 
         return res.status(500).json({
 
@@ -527,6 +684,7 @@ const getTicketAnalytics = async (req, res) => {
             await ticketModel.aggregate([
 
                 {
+
                     $group: {
 
                         _id:
@@ -537,12 +695,18 @@ const getTicketAnalytics = async (req, res) => {
                         }
 
                     }
+
                 },
 
                 {
+
                     $sort: {
-                        count: -1
+
+                        count:
+                            -1
+
                     }
+
                 }
 
             ]);
@@ -556,6 +720,7 @@ const getTicketAnalytics = async (req, res) => {
             await ticketModel.aggregate([
 
                 {
+
                     $group: {
 
                         _id:
@@ -566,12 +731,18 @@ const getTicketAnalytics = async (req, res) => {
                         }
 
                     }
+
                 },
 
                 {
+
                     $sort: {
-                        count: -1
+
+                        count:
+                            -1
+
                     }
+
                 }
 
             ]);
@@ -585,6 +756,7 @@ const getTicketAnalytics = async (req, res) => {
             await ticketModel.aggregate([
 
                 {
+
                     $match: {
 
                         assignedTo: {
@@ -596,13 +768,17 @@ const getTicketAnalytics = async (req, res) => {
                 },
 
                 {
+
                     $group: {
 
                         _id:
                             "$assignedTo",
 
                         totalTickets: {
-                            $sum: 1
+
+                            $sum:
+                                1
+
                         },
 
                         activeTickets: {
@@ -612,10 +788,15 @@ const getTicketAnalytics = async (req, res) => {
                                 $cond: [
 
                                     {
+
                                         $ne: [
+
                                             "$status",
+
                                             "resolved"
+
                                         ]
+
                                     },
 
                                     1,
@@ -635,10 +816,15 @@ const getTicketAnalytics = async (req, res) => {
                                 $cond: [
 
                                     {
+
                                         $eq: [
+
                                             "$status",
+
                                             "resolved"
+
                                         ]
+
                                     },
 
                                     1,
@@ -656,6 +842,7 @@ const getTicketAnalytics = async (req, res) => {
                 },
 
                 {
+
                     $lookup: {
 
                         from:
@@ -675,11 +862,14 @@ const getTicketAnalytics = async (req, res) => {
                 },
 
                 {
+
                     $unwind:
                         "$agent"
+
                 },
 
                 {
+
                     $project: {
 
                         _id:
@@ -711,6 +901,7 @@ const getTicketAnalytics = async (req, res) => {
                 },
 
                 {
+
                     $sort: {
 
                         activeTickets:
@@ -758,6 +949,7 @@ const getTicketAnalytics = async (req, res) => {
             error
         );
 
+
         return res.status(500).json({
 
             success: false,
@@ -784,12 +976,15 @@ const assignTicket = async (req, res) => {
             id
         } = req.params;
 
+
         const {
             agentId
         } = req.body;
 
 
-        if (!isValidObjectId(id)) {
+        if (
+            !isValidObjectId(id)
+        ) {
 
             return res.status(400).json({
 
@@ -852,13 +1047,18 @@ const assignTicket = async (req, res) => {
                 id,
 
                 {
+
                     assignedTo:
                         agent._id
+
                 },
 
                 {
+
                     new: true,
+
                     runValidators: true
+
                 }
 
             );
@@ -880,7 +1080,9 @@ const assignTicket = async (req, res) => {
 
         const populatedTicket =
             await populateTicket(
+
                 ticketModel.findById(id)
+
             );
 
 
@@ -896,35 +1098,47 @@ const assignTicket = async (req, res) => {
             io.to(
                 `ticket_${id}`
             ).emit(
+
                 "ticketAssignmentUpdated",
+
                 {
+
                     ticketId:
                         id,
 
                     assignedTo:
                         populatedTicket.assignedTo
+
                 }
+
             );
 
 
             io.to(
                 `user_${agent._id}`
             ).emit(
+
                 "ticketAssignmentUpdated",
+
                 {
+
                     ticketId:
                         id,
 
                     assignedTo:
                         populatedTicket.assignedTo
+
                 }
+
             );
+
 
         } catch (socketError) {
 
             console.error(
                 "ASSIGNMENT SOCKET ERROR:",
                 socketError.message
+
             );
 
         }
@@ -949,6 +1163,7 @@ const assignTicket = async (req, res) => {
             "ASSIGN TICKET ERROR:",
             error
         );
+
 
         return res.status(500).json({
 
@@ -976,19 +1191,26 @@ const updateTicketStatus = async (req, res) => {
             id
         } = req.params;
 
+
         const {
             status
         } = req.body;
 
 
         const allowedStatuses = [
+
             "open",
+
             "in-progress",
+
             "resolved"
+
         ];
 
 
-        if (!isValidObjectId(id)) {
+        if (
+            !isValidObjectId(id)
+        ) {
 
             return res.status(400).json({
 
@@ -1024,12 +1246,17 @@ const updateTicketStatus = async (req, res) => {
                 id,
 
                 {
+
                     status
+
                 },
 
                 {
+
                     new: true,
+
                     runValidators: true
+
                 }
 
             );
@@ -1061,8 +1288,11 @@ const updateTicketStatus = async (req, res) => {
             io.to(
                 `ticket_${id}`
             ).emit(
+
                 "ticketStatusUpdated",
+
                 {
+
                     ticketId:
                         id,
 
@@ -1071,14 +1301,18 @@ const updateTicketStatus = async (req, res) => {
 
                     updatedBy:
                         req.user.id
+
                 }
+
             );
+
 
         } catch (socketError) {
 
             console.error(
                 "STATUS SOCKET ERROR:",
                 socketError.message
+
             );
 
         }
@@ -1102,6 +1336,7 @@ const updateTicketStatus = async (req, res) => {
             "UPDATE STATUS ERROR:",
             error
         );
+
 
         return res.status(500).json({
 
@@ -1130,6 +1365,7 @@ const addTicketComment = async (req, res) => {
             id
         } = req.params;
 
+
         const {
             message
         } = req.body;
@@ -1139,7 +1375,9 @@ const addTicketComment = async (req, res) => {
         // VALIDATE TICKET ID
         // ----------------------------------------------
 
-        if (!isValidObjectId(id)) {
+        if (
+            !isValidObjectId(id)
+        ) {
 
             return res.status(400).json({
 
@@ -1246,12 +1484,15 @@ const addTicketComment = async (req, res) => {
 
 
         // ----------------------------------------------
-        // POPULATE NEW COMMENT AUTHOR
+        // POPULATE COMMENT AUTHOR
         // ----------------------------------------------
 
         await ticket.populate(
+
             "comments.author",
+
             "name email role"
+
         );
 
 
@@ -1262,7 +1503,7 @@ const addTicketComment = async (req, res) => {
 
 
         // ----------------------------------------------
-        // REAL-TIME COMMENT EVENT
+        // REAL-TIME COMMENT
         // ----------------------------------------------
 
         try {
@@ -1273,13 +1514,18 @@ const addTicketComment = async (req, res) => {
             io.to(
                 `ticket_${id}`
             ).emit(
+
                 "ticketCommentAdded",
+
                 {
+
                     ticketId:
                         id,
 
                     comment
+
                 }
+
             );
 
 
@@ -1288,14 +1534,11 @@ const addTicketComment = async (req, res) => {
             console.error(
                 "COMMENT SOCKET ERROR:",
                 socketError.message
+
             );
 
         }
 
-
-        // ----------------------------------------------
-        // RESPONSE
-        // ----------------------------------------------
 
         return res.status(201).json({
 
@@ -1315,6 +1558,7 @@ const addTicketComment = async (req, res) => {
             "ADD COMMENT ERROR:",
             error
         );
+
 
         return res.status(500).json({
 

@@ -16,8 +16,12 @@ const router = express.Router();
 
 
 // ========================================
-// PUBLIC CUSTOMER REGISTRATION
+// REGISTER
 // ========================================
+//
+// Registration receives the selected role:
+// customer / agent / admin
+//
 
 router.post(
     "/register",
@@ -28,6 +32,11 @@ router.post(
 // ========================================
 // LOGIN
 // ========================================
+//
+// One login endpoint is used.
+// Frontend checks that the returned role
+// matches the selected login portal.
+//
 
 router.post(
     "/login",
@@ -93,6 +102,52 @@ router.get(
 
             message:
                 "Welcome Admin"
+
+        });
+
+    }
+);
+
+
+// ========================================
+// AGENT TEST
+// ========================================
+
+router.get(
+    "/agent-test",
+    authMiddleware,
+    authorizeRoles("agent"),
+    (req, res) => {
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Welcome Agent"
+
+        });
+
+    }
+);
+
+
+// ========================================
+// CUSTOMER TEST
+// ========================================
+
+router.get(
+    "/customer-test",
+    authMiddleware,
+    authorizeRoles("customer"),
+    (req, res) => {
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Welcome Customer"
 
         });
 
