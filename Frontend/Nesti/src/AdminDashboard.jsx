@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "./services/api";
+import GalaxyBackground from "./components/GalaxyBackground";
+import AnimatedNumber from "./components/AnimatedNumber";
 
 function AdminDashboard({ user, onLogout }) {
 
@@ -600,6 +602,8 @@ function AdminDashboard({ user, onLogout }) {
 
         <div style={styles.page}>
 
+            <GalaxyBackground />
+
             {/* ================================================= */}
             {/* NAVBAR */}
             {/* ================================================= */}
@@ -681,7 +685,7 @@ function AdminDashboard({ user, onLogout }) {
                 {/* STATS */}
                 {/* ================================================= */}
 
-                <div style={styles.statsGrid}>
+                <div style={styles.statsGrid} className="nesti-stagger">
 
                     <StatCard
                         title="Total Tickets"
@@ -806,7 +810,7 @@ function AdminDashboard({ user, onLogout }) {
                                             issue._id ||
                                             issue.issueKey
                                         }
-                                        style={styles.emergingCard}
+                                        style={styles.emergingCard} className="nesti-card-hover"
                                     >
 
                                         <div style={styles.emergingCardTop}>
@@ -1005,7 +1009,7 @@ function AdminDashboard({ user, onLogout }) {
 
                                     <div
                                         key={issue._id}
-                                        style={styles.issueCard}
+                                        style={styles.issueCard} className="nesti-card-hover"
                                     >
 
                                         <div style={styles.issueCardTop}>
@@ -1168,7 +1172,7 @@ function AdminDashboard({ user, onLogout }) {
 
                     <div style={styles.analyticsGrid}>
 
-                        <div style={styles.analyticsCard}>
+                        <div style={styles.analyticsCard} className="nesti-card-hover">
 
                             <h3>
                                 Priority Distribution
@@ -1224,7 +1228,7 @@ function AdminDashboard({ user, onLogout }) {
 
                         </div>
 
-                        <div style={styles.analyticsCard}>
+                        <div style={styles.analyticsCard} className="nesti-card-hover">
 
                             <h3>
                                 Category Distribution
@@ -1286,7 +1290,7 @@ function AdminDashboard({ user, onLogout }) {
                     {/* AGENT WORKLOAD */}
                     {/* ================================================= */}
 
-                    <div style={styles.workloadCard}>
+                    <div style={styles.workloadCard} className="nesti-card-hover">
 
                         <div style={styles.workloadHeader}>
 
@@ -1323,7 +1327,7 @@ function AdminDashboard({ user, onLogout }) {
 
                                         <div
                                             key={agent.agentId}
-                                            style={styles.agentCard}
+                                            style={styles.agentCard} className="nesti-card-hover"
                                         >
 
                                             <div style={styles.agentCardHeader}>
@@ -1849,16 +1853,16 @@ function AdminDashboard({ user, onLogout }) {
                                                                     ...styles.confidenceBadge,
                                                                     background:
                                                                         ticket.aiAnalysis.solutionConfidence === "high"
-                                                                            ? "#dcfce7"
+                                                                            ? "rgba(52,211,153,0.12)"
                                                                             : ticket.aiAnalysis.solutionConfidence === "medium"
-                                                                                ? "#fef3c7"
-                                                                                : "#fee2e2",
+                                                                                ? "rgba(251,191,36,0.12)"
+                                                                                : "rgba(251,113,133,0.12)",
                                                                     color:
                                                                         ticket.aiAnalysis.solutionConfidence === "high"
-                                                                            ? "#166534"
+                                                                            ? "#34D399"
                                                                             : ticket.aiAnalysis.solutionConfidence === "medium"
-                                                                                ? "#92400e"
-                                                                                : "#991b1b"
+                                                                                ? "#FBBF24"
+                                                                                : "#FB7185"
                                                                 }}
                                                             >
                                                                 {
@@ -2253,7 +2257,7 @@ function StatCard({
 
     return (
 
-        <div style={styles.statCard}>
+        <div style={styles.statCard} className="nesti-card-hover">
 
             <span style={styles.statIcon}>
                 {icon}
@@ -2264,7 +2268,7 @@ function StatCard({
             </span>
 
             <strong style={styles.statNumber}>
-                {value}
+                <AnimatedNumber value={value} />
             </strong>
 
         </div>
@@ -2424,22 +2428,22 @@ function formatIssueDate(date) {
 function getStatusBackground(status) {
 
     if (status === "open") {
-        return "#fee2e2";
+        return "rgba(251,113,133,0.12)";
     }
 
     if (status === "in-progress") {
-        return "#fef3c7";
+        return "rgba(251,191,36,0.12)";
     }
 
     if (status === "resolved") {
-        return "#dcfce7";
+        return "rgba(52,211,153,0.12)";
     }
 
     if (status === "closed") {
-        return "#e0e7ff";
+        return "rgba(96,165,250,0.12)";
     }
 
-    return "#e5e7eb";
+    return "#202938";
 
 }
 
@@ -2455,8 +2459,8 @@ function getSeverityStyle(severity) {
 
         return {
             ...styles.severity,
-            background: "#7f1d1d",
-            color: "white"
+            background: "#FDA4AF",
+            color: "#F8FAFC"
         };
 
     }
@@ -2465,8 +2469,8 @@ function getSeverityStyle(severity) {
 
         return {
             ...styles.severity,
-            background: "#fee2e2",
-            color: "#b91c1c"
+            background: "rgba(251,113,133,0.12)",
+            color: "#FB7185"
         };
 
     }
@@ -2475,16 +2479,16 @@ function getSeverityStyle(severity) {
 
         return {
             ...styles.severity,
-            background: "#fef3c7",
-            color: "#92400e"
+            background: "rgba(251,191,36,0.12)",
+            color: "#FBBF24"
         };
 
     }
 
     return {
         ...styles.severity,
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     };
 
 }
@@ -2497,9 +2501,11 @@ function getSeverityStyle(severity) {
 const styles = {
 
     page: {
+        position: "relative",
         minHeight: "100vh",
-        background: "#f5f7fb",
-        color: "#1f2937"
+        background: "#080B12",
+        color: "#F8FAFC",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     },
 
     center: {
@@ -2507,16 +2513,16 @@ const styles = {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: "#f5f7fb"
+        background: "#080B12"
     },
 
     loadingCard: {
-        background: "white",
+        background: "#111824",
         padding: "45px",
-        borderRadius: "18px",
+        borderRadius: "16px",
         textAlign: "center",
         boxShadow:
-            "0 15px 40px rgba(0,0,0,0.08)"
+            "0 15px 40px rgba(0,0,0,0.35)"
     },
 
     bigEmoji: {
@@ -2524,23 +2530,27 @@ const styles = {
     },
 
     navbar: {
-        minHeight: "70px",
+        position: "relative",
+        zIndex: 1,
+        minHeight: "68px",
         padding: "0 40px",
-        background: "white",
+        background: "rgba(17,24,36,0.7)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #202938",
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
-        boxShadow:
-            "0 2px 10px rgba(0,0,0,0.05)"
+        alignItems: "center"
     },
 
     logo: {
         margin: 0,
-        fontSize: "24px"
+        fontSize: "20px",
+        fontWeight: "700",
+        letterSpacing: "-0.4px"
     },
 
     subtitle: {
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     navRight: {
@@ -2559,10 +2569,10 @@ const styles = {
 
     refreshButton: {
         padding: "9px 15px",
-        border: "1px solid #d1d5db",
+        border: "1px solid #202938",
         borderRadius: "8px",
-        background: "white",
-        color: "#374151",
+        background: "#111824",
+        color: "#94A3B8",
         cursor: "pointer",
         fontWeight: "600"
     },
@@ -2571,13 +2581,15 @@ const styles = {
         padding: "10px 20px",
         border: "none",
         borderRadius: "8px",
-        background: "#111827",
-        color: "white",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+        color: "#F8FAFC",
         cursor: "pointer",
         fontWeight: "600"
     },
 
     container: {
+        position: "relative",
+        zIndex: 1,
         maxWidth: "1200px",
         margin: "auto",
         padding: "40px 25px"
@@ -2589,11 +2601,13 @@ const styles = {
 
     heading: {
         margin: 0,
-        fontSize: "32px"
+        fontSize: "32px",
+        fontWeight: "600",
+        letterSpacing: "-0.5px"
     },
 
     headerText: {
-        color: "#6b7280",
+        color: "#94A3B8",
         marginTop: "8px"
     },
 
@@ -2606,14 +2620,14 @@ const styles = {
     },
 
     statCard: {
-        background: "white",
+        background: "#111824",
         padding: "20px",
         borderRadius: "12px",
         display: "flex",
         flexDirection: "column",
         gap: "7px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
     statIcon: {
@@ -2621,7 +2635,7 @@ const styles = {
     },
 
     statTitle: {
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "14px"
     },
 
@@ -2632,8 +2646,8 @@ const styles = {
     message: {
         padding: "14px",
         marginBottom: "20px",
-        background: "#dcfce7",
-        color: "#166534",
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399",
         borderRadius: "8px",
         textAlign: "center"
     },
@@ -2643,14 +2657,14 @@ const styles = {
     // ==================================================
 
     emergingSection: {
-        background: "white",
+        background: "#111824",
         padding: "25px",
         borderRadius: "16px",
         marginBottom: "30px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)",
+            "0 5px 20px rgba(0,0,0,0.35)",
         border:
-            "1px solid #fecaca"
+            "1px solid rgba(251,113,133,0.25)"
     },
 
     emergingHeader: {
@@ -2667,16 +2681,16 @@ const styles = {
 
     emergingSubtitle: {
         marginTop: "6px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     emergingBadge: {
         minWidth: "38px",
         height: "38px",
         padding: "0 10px",
-        borderRadius: "20px",
-        background: "#fee2e2",
-        color: "#b91c1c",
+        borderRadius: "16px",
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2686,9 +2700,9 @@ const styles = {
     emergingLoading: {
         padding: "30px",
         textAlign: "center",
-        background: "#f9fafb",
+        background: "#111824",
         borderRadius: "12px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     loadingIcon: {
@@ -2700,10 +2714,10 @@ const styles = {
         alignItems: "center",
         gap: "15px",
         padding: "20px",
-        background: "#f0fdf4",
+        background: "rgba(52,211,153,0.08)",
         borderRadius: "12px",
         border:
-            "1px solid #bbf7d0"
+            "1px solid rgba(52,211,153,0.25)"
     },
 
     noEmergingIcon: {
@@ -2712,12 +2726,12 @@ const styles = {
 
     noEmergingTitle: {
         margin: 0,
-        color: "#166534"
+        color: "#34D399"
     },
 
     noEmergingText: {
         marginBottom: 0,
-        color: "#4b5563"
+        color: "#94A3B8"
     },
 
     emergingGrid: {
@@ -2730,9 +2744,9 @@ const styles = {
     emergingCard: {
         padding: "20px",
         borderRadius: "13px",
-        background: "#fff7f7",
+        background: "rgba(251,113,133,0.08)",
         border:
-            "1px solid #fecaca"
+            "1px solid rgba(251,113,133,0.25)"
     },
 
     emergingCardTop: {
@@ -2745,7 +2759,7 @@ const styles = {
     alertLabel: {
         fontSize: "11px",
         fontWeight: "800",
-        color: "#dc2626",
+        color: "#FB7185",
         letterSpacing: "0.5px"
     },
 
@@ -2757,7 +2771,7 @@ const styles = {
     severity: {
         height: "fit-content",
         padding: "6px 10px",
-        borderRadius: "20px",
+        borderRadius: "16px",
         fontSize: "10px",
         fontWeight: "800",
         textTransform: "uppercase"
@@ -2772,7 +2786,7 @@ const styles = {
     },
 
     emergingStat: {
-        background: "white",
+        background: "#111824",
         padding: "13px 8px",
         borderRadius: "9px",
         textAlign: "center",
@@ -2792,8 +2806,8 @@ const styles = {
     emergingWarning: {
         marginTop: "15px",
         padding: "12px",
-        background: "#fef2f2",
-        color: "#991b1b",
+        background: "rgba(251,113,133,0.08)",
+        color: "#FB7185",
         borderRadius: "8px",
         fontSize: "13px",
         lineHeight: "1.5"
@@ -2805,8 +2819,8 @@ const styles = {
         padding: "10px 14px",
         border: "none",
         borderRadius: "8px",
-        background: "#991b1b",
-        color: "white",
+        background: "#FB7185",
+        color: "#F8FAFC",
         cursor: "pointer",
         fontWeight: "700"
     },
@@ -2816,12 +2830,12 @@ const styles = {
     // ==================================================
 
     issueSection: {
-        background: "white",
+        background: "#111824",
         padding: "25px",
         borderRadius: "16px",
         marginBottom: "30px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
     issueHeader: {
@@ -2838,15 +2852,15 @@ const styles = {
     },
 
     issueSubtitle: {
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.5"
     },
 
     issueBadge: {
         padding: "8px 12px",
-        borderRadius: "20px",
-        background: "#ede9fe",
-        color: "#6d28d9",
+        borderRadius: "16px",
+        background: "rgba(139,92,246,0.12)",
+        color: "#8B5CF6",
         fontSize: "12px",
         fontWeight: "700",
         whiteSpace: "nowrap"
@@ -2855,17 +2869,17 @@ const styles = {
     issueLoading: {
         padding: "40px",
         textAlign: "center",
-        background: "#fafafa",
+        background: "#111824",
         borderRadius: "12px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     noIssues: {
         padding: "35px",
         textAlign: "center",
-        background: "#fafafa",
+        background: "#111824",
         borderRadius: "12px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     noIssuesIcon: {
@@ -2882,9 +2896,9 @@ const styles = {
     issueCard: {
         padding: "20px",
         borderRadius: "13px",
-        background: "#fafafa",
+        background: "#111824",
         border:
-            "1px solid #e5e7eb"
+            "1px solid #202938"
     },
 
     issueCardTop: {
@@ -2910,20 +2924,20 @@ const styles = {
         display: "inline-block",
         marginTop: "5px",
         padding: "4px 7px",
-        borderRadius: "5px",
-        background: "#f3f4f6",
-        color: "#6b7280",
+        borderRadius: "8px",
+        background: "#151C29",
+        color: "#94A3B8",
         fontSize: "10px"
     },
 
     issueDescription: {
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.5"
     },
 
     issueCountBox: {
         padding: "15px",
-        background: "#f5f3ff",
+        background: "rgba(139,92,246,0.10)",
         borderRadius: "10px",
         display: "flex",
         alignItems: "center",
@@ -2933,11 +2947,11 @@ const styles = {
 
     issueCount: {
         fontSize: "28px",
-        color: "#6d28d9"
+        color: "#8B5CF6"
     },
 
     issueCountText: {
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "13px"
     },
 
@@ -2951,7 +2965,7 @@ const styles = {
 
     issueDetailItem: {
         padding: "10px",
-        background: "white",
+        background: "#111824",
         borderRadius: "8px",
         display: "flex",
         flexDirection: "column",
@@ -2964,7 +2978,7 @@ const styles = {
         gap: "10px",
         padding: "8px 0",
         borderTop:
-            "1px solid #e5e7eb",
+            "1px solid #202938",
         fontSize: "12px"
     },
 
@@ -2974,8 +2988,8 @@ const styles = {
         padding: "11px 15px",
         border: "none",
         borderRadius: "8px",
-        background: "#111827",
-        color: "white",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+        color: "#F8FAFC",
         cursor: "pointer",
         display: "flex",
         justifyContent: "space-between",
@@ -3001,7 +3015,7 @@ const styles = {
     },
 
     analyticsSubtitle: {
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     analyticsGrid: {
@@ -3012,15 +3026,15 @@ const styles = {
     },
 
     analyticsCard: {
-        background: "white",
+        background: "#111824",
         padding: "25px",
         borderRadius: "14px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
     cardDescription: {
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "13px"
     },
 
@@ -3037,24 +3051,24 @@ const styles = {
 
     barBackground: {
         height: "8px",
-        background: "#e5e7eb",
+        background: "#202938",
         borderRadius: "10px",
         overflow: "hidden"
     },
 
     barFill: {
         height: "100%",
-        background: "#6d28d9",
+        background: "#8B5CF6",
         borderRadius: "10px"
     },
 
     workloadCard: {
-        background: "white",
+        background: "#111824",
         padding: "25px",
         borderRadius: "14px",
         marginTop: "20px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
     workloadHeader: {
@@ -3067,16 +3081,16 @@ const styles = {
 
     agentCount: {
         padding: "7px 10px",
-        background: "#f3f4f6",
-        borderRadius: "20px",
+        background: "#151C29",
+        borderRadius: "16px",
         fontSize: "12px"
     },
 
     noWorkload: {
         padding: "25px",
         textAlign: "center",
-        color: "#6b7280",
-        background: "#f9fafb",
+        color: "#94A3B8",
+        background: "#111824",
         borderRadius: "10px"
     },
 
@@ -3090,9 +3104,9 @@ const styles = {
     agentCard: {
         padding: "18px",
         border:
-            "1px solid #e5e7eb",
+            "1px solid #202938",
         borderRadius: "11px",
-        background: "#fafafa"
+        background: "#111824"
     },
 
     agentCardHeader: {
@@ -3107,15 +3121,15 @@ const styles = {
 
     agentEmail: {
         margin: "5px 0",
-        color: "#9ca3af",
+        color: "#64748B",
         fontSize: "12px"
     },
 
     agentDepartment: {
         height: "fit-content",
         padding: "5px 8px",
-        background: "#ede9fe",
-        color: "#6d28d9",
+        background: "rgba(139,92,246,0.12)",
+        color: "#8B5CF6",
         borderRadius: "6px",
         fontSize: "10px"
     },
@@ -3129,7 +3143,7 @@ const styles = {
     },
 
     workloadStat: {
-        background: "white",
+        background: "#111824",
         padding: "10px",
         borderRadius: "8px",
         textAlign: "center",
@@ -3160,19 +3174,19 @@ const styles = {
     },
 
     sectionSubtitle: {
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     ticketCountBadge: {
         padding: "7px 12px",
-        background: "white",
-        borderRadius: "20px",
-        color: "#6b7280",
+        background: "#111824",
+        borderRadius: "16px",
+        color: "#94A3B8",
         fontSize: "12px"
     },
 
     filtersCard: {
-        background: "white",
+        background: "#111824",
         padding: "18px",
         borderRadius: "12px",
         marginBottom: "20px",
@@ -3181,13 +3195,13 @@ const styles = {
             "2fr repeat(4, 1fr) auto",
         gap: "10px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
     searchInput: {
         padding: "11px 13px",
         border:
-            "1px solid #d1d5db",
+            "1px solid #202938",
         borderRadius: "8px",
         outline: "none",
         fontSize: "13px"
@@ -3196,9 +3210,9 @@ const styles = {
     filterSelect: {
         padding: "11px 10px",
         border:
-            "1px solid #d1d5db",
+            "1px solid #202938",
         borderRadius: "8px",
-        background: "white",
+        background: "#111824",
         fontSize: "13px",
         outline: "none"
     },
@@ -3207,8 +3221,8 @@ const styles = {
         padding: "11px 15px",
         border: "none",
         borderRadius: "8px",
-        background: "#f3f4f6",
-        color: "#374151",
+        background: "#151C29",
+        color: "#94A3B8",
         cursor: "pointer",
         fontWeight: "600"
     },
@@ -3221,11 +3235,11 @@ const styles = {
     },
 
     ticket: {
-        background: "white",
+        background: "#111824",
         padding: "25px",
         borderRadius: "14px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.06)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
     ticketTop: {
@@ -3242,14 +3256,14 @@ const styles = {
 
     status: {
         padding: "7px 12px",
-        borderRadius: "20px",
+        borderRadius: "16px",
         fontSize: "11px",
         fontWeight: "700",
         whiteSpace: "nowrap"
     },
 
     description: {
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.6",
         marginTop: "15px"
     },
@@ -3261,8 +3275,8 @@ const styles = {
     },
 
     category: {
-        background: "#ede9fe",
-        color: "#6d28d9",
+        background: "rgba(139,92,246,0.12)",
+        color: "#8B5CF6",
         padding: "6px 10px",
         borderRadius: "6px",
         fontSize: "12px",
@@ -3270,8 +3284,8 @@ const styles = {
     },
 
     priority: {
-        background: "#fee2e2",
-        color: "#b91c1c",
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185",
         padding: "6px 10px",
         borderRadius: "6px",
         fontSize: "12px",
@@ -3281,7 +3295,7 @@ const styles = {
     line: {
         border: "none",
         borderTop:
-            "1px solid #e5e7eb",
+            "1px solid #202938",
         margin: "20px 0"
     },
 
@@ -3295,29 +3309,29 @@ const styles = {
 
     infoText: {
         margin: "7px 0 2px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     email: {
-        color: "#9ca3af"
+        color: "#64748B"
     },
 
     notAssigned: {
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     assignment: {
         marginTop: "20px",
         padding: "18px",
-        background: "#f9fafb",
+        background: "#111824",
         borderRadius: "10px"
     },
 
     currentAgent: {
         marginTop: "10px",
         padding: "10px",
-        background: "#dcfce7",
-        color: "#166534",
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399",
         borderRadius: "8px",
         display: "flex",
         flexDirection: "column",
@@ -3336,15 +3350,15 @@ const styles = {
         width: "100%",
         padding: "10px",
         border:
-            "1px solid #d1d5db",
+            "1px solid #202938",
         borderRadius: "8px",
-        background: "white"
+        background: "#111824"
     },
 
     assigningText: {
         display: "block",
         marginTop: "8px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
     // ==================================================
@@ -3354,18 +3368,18 @@ const styles = {
     aiBox: {
         marginTop: "20px",
         padding: "18px",
-        background: "#f5f3ff",
+        background: "rgba(139,92,246,0.10)",
         borderRadius: "10px",
-        color: "#374151",
+        color: "#94A3B8",
         lineHeight: "1.5"
     },
 
     solutionBox: {
         marginTop: "15px",
         padding: "16px",
-        background: "#ecfeff",
+        background: "rgba(45,212,191,0.12)",
         border:
-            "1px solid #a5f3fc",
+            "1px solid rgba(45,212,191,0.3)",
         borderRadius: "10px"
     },
 
@@ -3379,19 +3393,19 @@ const styles = {
     solutionLabel: {
         fontSize: "10px",
         fontWeight: "800",
-        color: "#0e7490",
+        color: "#2DD4BF",
         letterSpacing: "0.6px"
     },
 
     solutionAction: {
         margin: "6px 0 0",
         fontSize: "14px",
-        color: "#164e63"
+        color: "#5EEAD4"
     },
 
     confidenceBadge: {
         padding: "5px 8px",
-        borderRadius: "20px",
+        borderRadius: "16px",
         fontSize: "10px",
         fontWeight: "700",
         whiteSpace: "nowrap",
@@ -3400,7 +3414,7 @@ const styles = {
 
     solutionText: {
         margin: "12px 0 0",
-        color: "#374151",
+        color: "#94A3B8",
         fontSize: "13px",
         lineHeight: "1.6"
     },
@@ -3408,12 +3422,12 @@ const styles = {
     detectedIssueBox: {
         marginTop: "15px",
         padding: "12px",
-        background: "white",
+        background: "#111824",
         borderRadius: "8px",
         display: "flex",
         flexDirection: "column",
         gap: "5px",
-        color: "#6d28d9"
+        color: "#8B5CF6"
     },
 
     // ==================================================
@@ -3421,7 +3435,7 @@ const styles = {
     // ==================================================
 
     empty: {
-        background: "white",
+        background: "#111824",
         padding: "55px",
         textAlign: "center",
         borderRadius: "14px"
@@ -3452,8 +3466,8 @@ const styles = {
         maxWidth: "850px",
         maxHeight: "90vh",
         overflowY: "auto",
-        background: "white",
-        borderRadius: "18px",
+        background: "#111824",
+        borderRadius: "16px",
         padding: "28px",
         boxShadow:
             "0 25px 70px rgba(0,0,0,0.25)"
@@ -3466,11 +3480,11 @@ const styles = {
         gap: "20px",
         paddingBottom: "20px",
         borderBottom:
-            "1px solid #e5e7eb"
+            "1px solid #202938"
     },
 
     modalEyebrow: {
-        color: "#6d28d9",
+        color: "#8B5CF6",
         fontSize: "11px",
         fontWeight: "800",
         letterSpacing: "0.7px"
@@ -3485,8 +3499,8 @@ const styles = {
         display: "inline-block",
         padding: "4px 8px",
         borderRadius: "6px",
-        background: "#f3f4f6",
-        color: "#6b7280",
+        background: "#151C29",
+        color: "#94A3B8",
         fontSize: "11px"
     },
 
@@ -3495,7 +3509,7 @@ const styles = {
         height: "36px",
         border: "none",
         borderRadius: "50%",
-        background: "#f3f4f6",
+        background: "#151C29",
         fontSize: "24px",
         cursor: "pointer",
         lineHeight: "1"
@@ -3510,7 +3524,7 @@ const styles = {
     },
 
     modalSummaryItem: {
-        background: "#f9fafb",
+        background: "#111824",
         padding: "15px",
         borderRadius: "10px",
         display: "flex",
@@ -3523,16 +3537,16 @@ const styles = {
         alignItems: "center",
         gap: "12px",
         padding: "14px",
-        background: "#fef2f2",
+        background: "rgba(251,113,133,0.08)",
         border:
-            "1px solid #fecaca",
+            "1px solid rgba(251,113,133,0.25)",
         borderRadius: "10px",
-        color: "#991b1b",
+        color: "#FB7185",
         marginBottom: "20px"
     },
 
     modalDescription: {
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.6",
         marginBottom: "25px"
     },
@@ -3551,23 +3565,23 @@ const styles = {
     modalLoading: {
         padding: "35px",
         textAlign: "center",
-        color: "#6b7280",
-        background: "#f9fafb",
+        color: "#94A3B8",
+        background: "#111824",
         borderRadius: "10px"
     },
 
     modalError: {
         padding: "15px",
-        background: "#fee2e2",
-        color: "#991b1b",
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185",
         borderRadius: "9px"
     },
 
     modalEmpty: {
         padding: "35px",
         textAlign: "center",
-        background: "#f9fafb",
-        color: "#6b7280",
+        background: "#111824",
+        color: "#94A3B8",
         borderRadius: "10px"
     },
 
@@ -3582,17 +3596,17 @@ const styles = {
         gap: "14px",
         padding: "17px",
         border:
-            "1px solid #e5e7eb",
+            "1px solid #202938",
         borderRadius: "12px",
-        background: "#fafafa"
+        background: "#111824"
     },
 
     issueTicketNumber: {
         width: "30px",
         height: "30px",
         borderRadius: "8px",
-        background: "#ede9fe",
-        color: "#6d28d9",
+        background: "rgba(139,92,246,0.12)",
+        color: "#8B5CF6",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -3617,7 +3631,7 @@ const styles = {
     },
 
     issueTicketDescription: {
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.5"
     },
 
@@ -3625,7 +3639,7 @@ const styles = {
         display: "flex",
         flexWrap: "wrap",
         gap: "10px",
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "12px"
     },
 
@@ -3635,9 +3649,9 @@ const styles = {
         gap: "5px",
         marginTop: "12px",
         padding: "10px",
-        background: "#ecfeff",
+        background: "rgba(45,212,191,0.12)",
         borderRadius: "8px",
-        color: "#155e75",
+        color: "#2DD4BF",
         fontSize: "12px"
     }
 

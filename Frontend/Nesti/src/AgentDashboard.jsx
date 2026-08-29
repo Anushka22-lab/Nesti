@@ -9,6 +9,8 @@ import {
 } from "socket.io-client";
 
 import api from "./services/api";
+import GalaxyBackground from "./components/GalaxyBackground";
+import AnimatedNumber from "./components/AnimatedNumber";
 
 
 const SOCKET_URL =
@@ -1087,6 +1089,7 @@ function AgentDashboard({
 
         <div style={styles.page}>
 
+            <GalaxyBackground />
 
             {/* ==================================================
                 NAVBAR
@@ -1239,6 +1242,7 @@ function AgentDashboard({
                         style={
                             styles.ticketGrid
                         }
+                        className="nesti-stagger"
                     >
 
                         {tickets.map(
@@ -1251,6 +1255,7 @@ function AgentDashboard({
                                     style={
                                         styles.ticket
                                     }
+                                    className="nesti-card-hover"
                                 >
 
                                     {/* ==================================================
@@ -2146,9 +2151,11 @@ function AgentDashboard({
 const styles = {
 
     page: {
+        position: "relative",
         minHeight: "100vh",
-        background: "#f5f7fb",
-        color: "#1f2937"
+        background: "#080B12",
+        color: "#F8FAFC",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     },
 
 
@@ -2157,17 +2164,17 @@ const styles = {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: "#f5f7fb"
+        background: "#080B12"
     },
 
 
     loadingCard: {
-        background: "white",
+        background: "#111824",
         padding: "40px",
-        borderRadius: "18px",
+        borderRadius: "16px",
         textAlign: "center",
         boxShadow:
-            "0 10px 30px rgba(0,0,0,0.08)"
+            "0 10px 30px rgba(0,0,0,0.35)"
     },
 
 
@@ -2178,26 +2185,30 @@ const styles = {
 
 
     navbar: {
-        minHeight: "70px",
+        position: "relative",
+        zIndex: 1,
+        minHeight: "68px",
         padding: "0 40px",
-        background: "white",
+        background: "rgba(17,24,36,0.7)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #202938",
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
-        boxShadow:
-            "0 2px 10px rgba(0,0,0,0.06)"
+        alignItems: "center"
     },
 
 
     logo: {
         margin: 0,
-        fontSize: "24px"
+        fontSize: "20px",
+        fontWeight: "700",
+        letterSpacing: "-0.4px"
     },
 
 
     subtitle: {
         margin: "4px 0 0",
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "14px"
     },
 
@@ -2221,14 +2232,16 @@ const styles = {
         padding: "10px 18px",
         border: "none",
         borderRadius: "8px",
-        background: "#111827",
-        color: "white",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+        color: "#F8FAFC",
         cursor: "pointer",
         fontWeight: "600"
     },
 
 
     container: {
+        position: "relative",
+        zIndex: 1,
         maxWidth: "1200px",
         margin: "0 auto",
         padding: "40px 25px"
@@ -2246,12 +2259,14 @@ const styles = {
 
     heading: {
         margin: 0,
-        fontSize: "32px"
+        fontSize: "32px",
+        fontWeight: "600",
+        letterSpacing: "-0.5px"
     },
 
 
     headerText: {
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "16px",
         marginTop: "8px",
         maxWidth: "650px",
@@ -2262,13 +2277,13 @@ const styles = {
     stats: {
         minWidth: "150px",
         padding: "20px 25px",
-        background: "white",
+        background: "#111824",
         borderRadius: "14px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.06)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
 
@@ -2283,8 +2298,8 @@ const styles = {
 
 
     error: {
-        background: "#fee2e2",
-        color: "#991b1b",
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185",
         padding: "14px 18px",
         borderRadius: "10px",
         marginBottom: "20px"
@@ -2292,12 +2307,12 @@ const styles = {
 
 
     empty: {
-        background: "white",
+        background: "#111824",
         padding: "60px 30px",
         textAlign: "center",
         borderRadius: "14px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
 
@@ -2316,11 +2331,11 @@ const styles = {
 
 
     ticket: {
-        background: "white",
+        background: "#111824",
         padding: "28px",
         borderRadius: "16px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.06)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
 
@@ -2346,14 +2361,14 @@ const styles = {
     ticketId: {
         display: "block",
         marginTop: "6px",
-        color: "#9ca3af",
+        color: "#64748B",
         fontSize: "11px"
     },
 
 
     status: {
         padding: "7px 12px",
-        borderRadius: "20px",
+        borderRadius: "16px",
         fontSize: "12px",
         fontWeight: "600",
         whiteSpace: "nowrap"
@@ -2361,31 +2376,31 @@ const styles = {
 
 
     statusOpen: {
-        background: "#fee2e2",
-        color: "#991b1b"
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185"
     },
 
 
     statusProgress: {
-        background: "#fef3c7",
-        color: "#92400e"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     statusResolved: {
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     },
 
 
     statusDefault: {
-        background: "#e5e7eb",
-        color: "#374151"
+        background: "#202938",
+        color: "#94A3B8"
     },
 
 
     description: {
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.6",
         marginTop: "18px"
     },
@@ -2399,8 +2414,8 @@ const styles = {
 
 
     category: {
-        background: "#ede9fe",
-        color: "#6d28d9",
+        background: "rgba(139,92,246,0.12)",
+        color: "#8B5CF6",
         padding: "6px 10px",
         borderRadius: "6px",
         fontSize: "12px",
@@ -2417,32 +2432,32 @@ const styles = {
 
 
     priorityUrgent: {
-        background: "#fee2e2",
-        color: "#991b1b"
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185"
     },
 
 
     priorityHigh: {
-        background: "#ffedd5",
-        color: "#c2410c"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     priorityMedium: {
-        background: "#fef3c7",
-        color: "#92400e"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     priorityLow: {
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     },
 
 
     line: {
         border: "none",
-        borderTop: "1px solid #e5e7eb",
+        borderTop: "1px solid #202938",
         margin: "20px 0"
     },
 
@@ -2466,7 +2481,7 @@ const styles = {
 
 
     email: {
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
 
@@ -2477,9 +2492,10 @@ const styles = {
     aiBox: {
         marginTop: "22px",
         padding: "18px",
-        background: "#f5f3ff",
+        background: "rgba(139,92,246,0.10)",
         borderRadius: "12px",
-        color: "#374151",
+        border: "1px solid rgba(139,92,246,0.22)",
+        color: "#94A3B8",
         fontSize: "14px",
         lineHeight: "1.5"
     },
@@ -2494,7 +2510,7 @@ const styles = {
 
     aiTitle: {
         marginTop: 0,
-        color: "#6d28d9",
+        color: "#8B5CF6",
         marginBottom: "15px"
     },
 
@@ -2509,7 +2525,7 @@ const styles = {
 
 
     aiItem: {
-        background: "white",
+        background: "#111824",
         padding: "10px 12px",
         borderRadius: "8px",
         display: "flex",
@@ -2519,7 +2535,7 @@ const styles = {
 
 
     aiLabel: {
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "11px",
         textTransform: "uppercase",
         letterSpacing: "0.04em"
@@ -2533,11 +2549,11 @@ const styles = {
     solutionBox: {
         marginTop: "20px",
         padding: "18px",
-        background: "white",
+        background: "#111824",
         borderRadius: "12px",
-        border: "1px solid #ddd6fe",
+        border: "1px solid rgba(139,92,246,0.25)",
         boxShadow:
-            "0 3px 12px rgba(0,0,0,0.04)"
+            "0 3px 12px rgba(0,0,0,0.35)"
     },
 
 
@@ -2551,7 +2567,7 @@ const styles = {
 
 
     solutionLabel: {
-        color: "#8b5cf6",
+        color: "#8B5CF6",
         fontSize: "10px",
         fontWeight: "800",
         letterSpacing: "0.08em",
@@ -2561,14 +2577,14 @@ const styles = {
 
     solutionTitle: {
         margin: 0,
-        color: "#5b21b6",
+        color: "#7C3AED",
         fontSize: "18px"
     },
 
 
     confidenceBadge: {
         padding: "6px 10px",
-        borderRadius: "20px",
+        borderRadius: "16px",
         fontSize: "10px",
         fontWeight: "800",
         whiteSpace: "nowrap"
@@ -2576,20 +2592,20 @@ const styles = {
 
 
     confidenceHigh: {
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     },
 
 
     confidenceMedium: {
-        background: "#fef3c7",
-        color: "#92400e"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     confidenceLow: {
-        background: "#fee2e2",
-        color: "#991b1b"
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185"
     },
 
 
@@ -2597,7 +2613,7 @@ const styles = {
         display: "flex",
         gap: "12px",
         padding: "13px",
-        background: "#f5f3ff",
+        background: "rgba(139,92,246,0.10)",
         borderRadius: "9px",
         marginBottom: "12px"
     },
@@ -2617,14 +2633,14 @@ const styles = {
 
     recommendationHeading: {
         display: "block",
-        color: "#374151",
+        color: "#94A3B8",
         fontSize: "13px"
     },
 
 
     recommendationText: {
         margin: "6px 0 0",
-        color: "#4b5563",
+        color: "#94A3B8",
         lineHeight: "1.6",
         whiteSpace: "pre-line"
     },
@@ -2632,7 +2648,7 @@ const styles = {
 
     solutionContent: {
         padding: "13px",
-        background: "#fafafa",
+        background: "#111824",
         borderRadius: "9px"
     },
 
@@ -2647,8 +2663,8 @@ const styles = {
         padding: "12px 16px",
         border: "none",
         borderRadius: "9px",
-        background: "#6d28d9",
-        color: "white",
+        background: "#8B5CF6",
+        color: "#F8FAFC",
         fontWeight: "700",
         fontSize: "13px",
         cursor: "pointer",
@@ -2659,7 +2675,7 @@ const styles = {
     aiDisclaimer: {
         margin: "12px 0 0",
         fontSize: "11px",
-        color: "#9ca3af",
+        color: "#64748B",
         fontStyle: "italic"
     },
 
@@ -2670,7 +2686,7 @@ const styles = {
 
     commentsSection: {
         marginTop: "25px",
-        borderTop: "1px solid #e5e7eb",
+        borderTop: "1px solid #202938",
         paddingTop: "20px"
     },
 
@@ -2685,7 +2701,7 @@ const styles = {
 
     commentCount: {
         fontSize: "12px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
 
@@ -2701,9 +2717,9 @@ const styles = {
 
     noComments: {
         padding: "18px",
-        background: "#f9fafb",
+        background: "#111824",
         borderRadius: "10px",
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "13px",
         textAlign: "center"
     },
@@ -2718,13 +2734,13 @@ const styles = {
 
     myComment: {
         alignSelf: "flex-end",
-        background: "#eef2ff"
+        background: "rgba(139,92,246,0.10)"
     },
 
 
     otherComment: {
         alignSelf: "flex-start",
-        background: "#f3f4f6"
+        background: "#151C29"
     },
 
 
@@ -2760,7 +2776,7 @@ const styles = {
         maxHeight: "150px",
         resize: "vertical",
         padding: "11px",
-        border: "1px solid #d1d5db",
+        border: "1px solid #202938",
         borderRadius: "9px",
         fontSize: "14px",
         boxSizing: "border-box",
@@ -2773,8 +2789,8 @@ const styles = {
         padding: "11px 18px",
         border: "none",
         borderRadius: "9px",
-        background: "#4f46e5",
-        color: "white",
+        background: "#8B5CF6",
+        color: "#F8FAFC",
         fontWeight: "600",
         cursor: "pointer",
         whiteSpace: "nowrap"
@@ -2810,25 +2826,25 @@ const styles = {
 
 
     openButton: {
-        background: "#fee2e2",
-        color: "#991b1b"
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185"
     },
 
 
     progressButton: {
-        background: "#fef3c7",
-        color: "#92400e"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     resolveButton: {
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     },
 
 
     activeButton: {
-        outline: "3px solid #d1d5db"
+        outline: "3px solid #202938"
     }
 
 };

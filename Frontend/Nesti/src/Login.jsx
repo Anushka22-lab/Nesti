@@ -1,5 +1,7 @@
 import { useState } from "react";
 import api from "./services/api";
+import GalaxyBackground from "./components/GalaxyBackground";
+import AIOrb from "./components/AIOrb";
 
 
 function Login({
@@ -126,19 +128,23 @@ function Login({
 
         <div style={styles.page}>
 
+            <GalaxyBackground />
+
             <form
                 onSubmit={handleLogin}
                 style={styles.card}
+                className="nesti-fade-up"
             >
 
                 {/* LOGO */}
 
-                <h1 style={styles.logo}>
-                    Nesti
-                </h1>
+                <div style={styles.brandRow}>
+                    <AIOrb size={26} />
+                    <span style={styles.logo}>Nesti</span>
+                </div>
 
                 <p style={styles.subtitle}>
-                    {roleName} Login
+                    {roleName} login
                 </p>
 
 
@@ -186,7 +192,7 @@ function Login({
 
                 {error && (
 
-                    <div style={styles.error}>
+                    <div style={styles.error} className="nesti-fade-in">
                         {error}
                     </div>
 
@@ -205,10 +211,11 @@ function Login({
                             ? styles.disabledButton
                             : {})
                     }}
+                    className="nesti-btn"
                 >
 
                     {loading
-                        ? "Logging in..."
+                        ? "Logging in…"
                         : `Login as ${roleName}`}
 
                 </button>
@@ -262,6 +269,8 @@ const styles = {
 
     page: {
 
+        position: "relative",
+
         minHeight: "100vh",
 
         display: "flex",
@@ -274,59 +283,76 @@ const styles = {
 
         boxSizing: "border-box",
 
-        background: "#f5f7fb",
+        background: "#080B12",
 
-        color: "#1f2937"
+        color: "#F8FAFC",
+
+        fontFamily: "'Inter', -apple-system, sans-serif"
 
     },
 
 
     card: {
 
+        position: "relative",
+
+        zIndex: 1,
+
         width: "100%",
 
-        maxWidth: "440px",
+        maxWidth: "420px",
 
-        padding: "42px",
+        padding: "40px",
 
         boxSizing: "border-box",
 
-        background: "white",
+        background: "#111824",
 
-        borderRadius: "18px",
+        border: "1px solid #202938",
+
+        borderRadius: "16px",
 
         boxShadow:
-            "0 15px 45px rgba(0,0,0,0.08)"
+            "0 1px 0 rgba(255,255,255,0.03) inset, 0 20px 50px rgba(0,0,0,0.5)"
 
     },
 
+    brandRow: {
+
+        display: "flex",
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        gap: "9px"
+
+    },
 
     logo: {
 
-        margin: 0,
+        fontSize: "20px",
 
-        textAlign: "center",
+        fontWeight: "700",
 
-        fontSize: "32px",
+        letterSpacing: "-0.4px",
 
-        fontWeight: "800",
-
-        letterSpacing: "-1px"
+        color: "#F8FAFC"
 
     },
 
 
     subtitle: {
 
-        marginTop: "8px",
+        marginTop: "10px",
 
-        marginBottom: "35px",
+        marginBottom: "30px",
 
         textAlign: "center",
 
-        color: "#6b7280",
+        color: "#94A3B8",
 
-        fontSize: "15px"
+        fontSize: "14px"
 
     },
 
@@ -337,9 +363,11 @@ const styles = {
 
         marginBottom: "8px",
 
-        fontSize: "14px",
+        fontSize: "13px",
 
-        fontWeight: "600"
+        fontWeight: "600",
+
+        color: "#94A3B8"
 
     },
 
@@ -348,17 +376,21 @@ const styles = {
 
         width: "100%",
 
-        padding: "13px 14px",
+        padding: "12px 14px",
 
-        marginBottom: "20px",
+        marginBottom: "18px",
 
         boxSizing: "border-box",
 
-        border: "1px solid #d1d5db",
+        border: "1px solid #202938",
 
         borderRadius: "9px",
 
-        fontSize: "15px",
+        background: "#0E1420",
+
+        color: "#F8FAFC",
+
+        fontSize: "14px",
 
         outline: "none"
 
@@ -369,19 +401,19 @@ const styles = {
 
         width: "100%",
 
-        padding: "13px",
+        padding: "12px",
 
-        border: "none",
+        border: "1px solid rgba(139,92,246,0.4)",
 
         borderRadius: "9px",
 
-        background: "#111827",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
 
         color: "white",
 
-        fontSize: "15px",
+        fontSize: "14px",
 
-        fontWeight: "700",
+        fontWeight: "600",
 
         cursor: "pointer"
 
@@ -405,11 +437,13 @@ const styles = {
 
         borderRadius: "8px",
 
-        background: "#fee2e2",
+        background: "rgba(251,113,133,0.12)",
 
-        color: "#991b1b",
+        border: "1px solid rgba(251,113,133,0.25)",
 
-        fontSize: "14px",
+        color: "#FB7185",
+
+        fontSize: "13px",
 
         textAlign: "center"
 
@@ -426,7 +460,7 @@ const styles = {
 
         gap: "5px",
 
-        marginTop: "25px",
+        marginTop: "24px",
 
         fontSize: "14px"
 
@@ -435,7 +469,7 @@ const styles = {
 
     registerText: {
 
-        color: "#6b7280"
+        color: "#94A3B8"
 
     },
 
@@ -448,11 +482,11 @@ const styles = {
 
         background: "transparent",
 
-        color: "#4f46e5",
+        color: "#C4B5FD",
 
         fontSize: "14px",
 
-        fontWeight: "700",
+        fontWeight: "600",
 
         cursor: "pointer"
 
@@ -471,7 +505,7 @@ const styles = {
 
         background: "transparent",
 
-        color: "#6b7280",
+        color: "#64748B",
 
         fontSize: "13px",
 

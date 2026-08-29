@@ -10,6 +10,9 @@ import AgentDashboard from "./AgentDashboard";
 import CustomerDashboard from "./CustomerDashboard";
 import AdminDashboard from "./AdminDashboard";
 
+import GalaxyBackground from "./components/GalaxyBackground";
+import AIOrb from "./components/AIOrb";
+
 
 function App() {
 
@@ -207,18 +210,18 @@ function App() {
 
             <div style={styles.center}>
 
-                <div style={styles.loadingCard}>
+                <GalaxyBackground />
 
-                    <div style={styles.logo}>
-                        Nesti
-                    </div>
+                <div style={styles.loadingCard} className="nesti-fade-up">
 
-                    <h2>
-                        Loading Nesti...
+                    <AIOrb size={44} />
+
+                    <h2 style={styles.loadingTitle}>
+                        Loading Nesti
                     </h2>
 
-                    <p>
-                        Checking your account
+                    <p style={styles.loadingText}>
+                        Checking your account…
                     </p>
 
                 </div>
@@ -296,20 +299,22 @@ function App() {
 
             <div style={styles.center}>
 
+                <GalaxyBackground />
+
                 <div style={styles.loadingCard}>
 
-                    <h2>
-                        Unknown User Role
+                    <h2 style={styles.loadingTitle}>
+                        Unknown user role
                     </h2>
 
-                    <p>
-                        Role:{" "}
-                        {user.role || "Unknown"}
+                    <p style={styles.loadingText}>
+                        Role: {user.role || "Unknown"}
                     </p>
 
                     <button
                         onClick={handleLogout}
                         style={styles.logoutButton}
+                        className="nesti-btn"
                     >
                         Logout
                     </button>
@@ -437,6 +442,8 @@ const styles = {
 
     center: {
 
+        position: "relative",
+
         minHeight: "100vh",
 
         display: "flex",
@@ -445,61 +452,90 @@ const styles = {
 
         alignItems: "center",
 
-        background: "#f5f7fb",
+        background: "#080B12",
 
-        color: "#1f2937"
+        color: "#F8FAFC",
+
+        fontFamily: "'Inter', -apple-system, sans-serif"
 
     },
 
 
     loadingCard: {
 
-        width: "360px",
+        position: "relative",
+
+        zIndex: 1,
+
+        width: "340px",
 
         padding: "40px",
 
         boxSizing: "border-box",
 
-        background: "white",
+        background: "#111824",
+
+        border: "1px solid #202938",
 
         borderRadius: "16px",
 
         textAlign: "center",
 
         boxShadow:
-            "0 10px 40px rgba(0,0,0,0.08)"
+            "0 1px 0 rgba(255,255,255,0.03) inset, 0 20px 50px rgba(0,0,0,0.5)",
+
+        display: "flex",
+
+        flexDirection: "column",
+
+        alignItems: "center",
+
+        gap: "14px"
 
     },
 
+    loadingTitle: {
 
-    logo: {
+        margin: 0,
 
-        fontSize: "32px",
+        fontSize: "17px",
 
-        fontWeight: "800",
+        fontWeight: "600",
 
-        marginBottom: "10px"
+        color: "#F8FAFC"
+
+    },
+
+    loadingText: {
+
+        margin: 0,
+
+        fontSize: "13px",
+
+        color: "#94A3B8"
 
     },
 
 
     logoutButton: {
 
-        marginTop: "15px",
+        marginTop: "6px",
 
         padding: "10px 20px",
 
-        border: "none",
+        border: "1px solid rgba(139,92,246,0.4)",
 
         borderRadius: "8px",
 
-        background: "#111827",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
 
         color: "white",
 
         cursor: "pointer",
 
-        fontWeight: "600"
+        fontWeight: "600",
+
+        fontSize: "13px"
 
     }
 

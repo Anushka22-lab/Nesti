@@ -1,5 +1,7 @@
 import { useState } from "react";
 import api from "./services/api";
+import GalaxyBackground from "./components/GalaxyBackground";
+import AIOrb from "./components/AIOrb";
 
 
 function Register({
@@ -126,7 +128,7 @@ function Register({
 
 
             setSuccess(
-                `${roleName} account created successfully! 🎉`
+                `${roleName} account created successfully.`
             );
 
 
@@ -183,19 +185,23 @@ function Register({
 
         <div style={styles.page}>
 
+            <GalaxyBackground />
+
             <form
                 onSubmit={handleRegister}
                 style={styles.card}
+                className="nesti-fade-up"
             >
 
                 {/* LOGO */}
 
-                <h1 style={styles.logo}>
-                    Nesti
-                </h1>
+                <div style={styles.brandRow}>
+                    <AIOrb size={26} />
+                    <span style={styles.logo}>Nesti</span>
+                </div>
 
                 <p style={styles.subtitle}>
-                    Create {roleName} Account
+                    Create {roleName} account
                 </p>
 
 
@@ -203,7 +209,7 @@ function Register({
 
                 {error && (
 
-                    <div style={styles.error}>
+                    <div style={styles.error} className="nesti-fade-in">
                         {error}
                     </div>
 
@@ -214,7 +220,7 @@ function Register({
 
                 {success && (
 
-                    <div style={styles.success}>
+                    <div style={styles.success} className="nesti-fade-in">
                         {success}
                     </div>
 
@@ -313,11 +319,12 @@ function Register({
                             ? styles.disabledButton
                             : {})
                     }}
+                    className="nesti-btn"
                 >
 
                     {loading
-                        ? "Creating Account..."
-                        : `Create ${roleName} Account`}
+                        ? "Creating account…"
+                        : `Create ${roleName} account`}
 
                 </button>
 
@@ -370,6 +377,8 @@ const styles = {
 
     page: {
 
+        position: "relative",
+
         minHeight: "100vh",
 
         display: "flex",
@@ -382,57 +391,74 @@ const styles = {
 
         boxSizing: "border-box",
 
-        background: "#f5f7fb",
+        background: "#080B12",
 
-        color: "#111827"
+        color: "#F8FAFC",
+
+        fontFamily: "'Inter', -apple-system, sans-serif"
 
     },
 
 
     card: {
 
+        position: "relative",
+
+        zIndex: 1,
+
         width: "100%",
 
         maxWidth: "420px",
 
-        padding: "38px",
+        padding: "36px",
 
         boxSizing: "border-box",
 
-        background: "white",
+        background: "#111824",
 
-        borderRadius: "18px",
+        border: "1px solid #202938",
+
+        borderRadius: "16px",
 
         boxShadow:
-            "0 12px 40px rgba(0,0,0,0.08)"
+            "0 1px 0 rgba(255,255,255,0.03) inset, 0 20px 50px rgba(0,0,0,0.5)"
 
     },
 
+    brandRow: {
+
+        display: "flex",
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        gap: "9px"
+
+    },
 
     logo: {
 
-        margin: 0,
+        fontSize: "20px",
 
-        textAlign: "center",
+        fontWeight: "700",
 
-        fontSize: "32px",
+        letterSpacing: "-0.4px",
 
-        fontWeight: "800",
-
-        letterSpacing: "-1px"
+        color: "#F8FAFC"
 
     },
 
 
     subtitle: {
 
-        margin: "8px 0 28px",
+        margin: "10px 0 26px",
 
         textAlign: "center",
 
-        color: "#6b7280",
+        color: "#94A3B8",
 
-        fontSize: "15px"
+        fontSize: "14px"
 
     },
 
@@ -441,15 +467,15 @@ const styles = {
 
         display: "block",
 
-        marginTop: "15px",
+        marginTop: "14px",
 
         marginBottom: "7px",
 
-        fontSize: "14px",
+        fontSize: "13px",
 
         fontWeight: "600",
 
-        color: "#374151"
+        color: "#94A3B8"
 
     },
 
@@ -458,13 +484,17 @@ const styles = {
 
         width: "100%",
 
-        padding: "13px 14px",
+        padding: "12px 14px",
 
         boxSizing: "border-box",
 
-        border: "1px solid #d1d5db",
+        border: "1px solid #202938",
 
         borderRadius: "9px",
+
+        background: "#0E1420",
+
+        color: "#F8FAFC",
 
         fontSize: "14px",
 
@@ -477,21 +507,21 @@ const styles = {
 
         width: "100%",
 
-        marginTop: "24px",
+        marginTop: "22px",
 
-        padding: "13px",
+        padding: "12px",
 
-        border: "none",
+        border: "1px solid rgba(139,92,246,0.4)",
 
         borderRadius: "9px",
 
-        background: "#111827",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
 
         color: "white",
 
-        fontSize: "15px",
+        fontSize: "14px",
 
-        fontWeight: "700",
+        fontWeight: "600",
 
         cursor: "pointer"
 
@@ -509,34 +539,38 @@ const styles = {
 
     error: {
 
-        padding: "12px 14px",
+        padding: "11px 13px",
 
-        marginBottom: "15px",
+        marginBottom: "14px",
 
-        borderRadius: "9px",
+        borderRadius: "8px",
 
-        background: "#fee2e2",
+        background: "rgba(251,113,133,0.12)",
 
-        color: "#991b1b",
+        border: "1px solid rgba(251,113,133,0.25)",
 
-        fontSize: "14px"
+        color: "#FB7185",
+
+        fontSize: "13px"
 
     },
 
 
     success: {
 
-        padding: "12px 14px",
+        padding: "11px 13px",
 
-        marginBottom: "15px",
+        marginBottom: "14px",
 
-        borderRadius: "9px",
+        borderRadius: "8px",
 
-        background: "#dcfce7",
+        background: "rgba(52,211,153,0.12)",
 
-        color: "#166534",
+        border: "1px solid rgba(52,211,153,0.25)",
 
-        fontSize: "14px"
+        color: "#34D399",
+
+        fontSize: "13px"
 
     },
 
@@ -560,7 +594,7 @@ const styles = {
 
     loginText: {
 
-        color: "#6b7280"
+        color: "#94A3B8"
 
     },
 
@@ -573,9 +607,9 @@ const styles = {
 
         background: "transparent",
 
-        color: "#4f46e5",
+        color: "#C4B5FD",
 
-        fontWeight: "700",
+        fontWeight: "600",
 
         cursor: "pointer",
 
@@ -596,7 +630,7 @@ const styles = {
 
         background: "transparent",
 
-        color: "#6b7280",
+        color: "#64748B",
 
         fontSize: "13px",
 

@@ -9,6 +9,8 @@ import {
 } from "socket.io-client";
 
 import api from "./services/api";
+import GalaxyBackground from "./components/GalaxyBackground";
+import AnimatedNumber from "./components/AnimatedNumber";
 
 
 const SOCKET_URL =
@@ -1150,6 +1152,8 @@ function CustomerDashboard({
 
         <div style={styles.page}>
 
+            <GalaxyBackground />
+
             {/* ==================================================
                 NAVBAR
             ================================================== */}
@@ -1520,6 +1524,7 @@ function CustomerDashboard({
                         style={
                             styles.ticketGrid
                         }
+                        className="nesti-stagger"
                     >
 
                         {tickets.map(
@@ -1532,6 +1537,7 @@ function CustomerDashboard({
                                     style={
                                         styles.ticket
                                     }
+                                    className="nesti-card-hover"
                                 >
 
                                     {/* ==================================================
@@ -2210,9 +2216,11 @@ function CustomerDashboard({
 const styles = {
 
     page: {
+        position: "relative",
         minHeight: "100vh",
-        background: "#f5f7fb",
-        color: "#1f2937"
+        background: "#080B12",
+        color: "#F8FAFC",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     },
 
 
@@ -2221,17 +2229,17 @@ const styles = {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: "#f5f7fb"
+        background: "#080B12"
     },
 
 
     loadingCard: {
-        background: "white",
+        background: "#111824",
         padding: "40px",
-        borderRadius: "18px",
+        borderRadius: "16px",
         textAlign: "center",
         boxShadow:
-            "0 10px 30px rgba(0,0,0,0.08)"
+            "0 10px 30px rgba(0,0,0,0.35)"
     },
 
 
@@ -2242,26 +2250,30 @@ const styles = {
 
 
     navbar: {
-        minHeight: "70px",
+        position: "relative",
+        zIndex: 1,
+        minHeight: "68px",
         padding: "0 40px",
-        background: "white",
+        background: "rgba(17,24,36,0.7)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #202938",
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
-        boxShadow:
-            "0 2px 10px rgba(0,0,0,0.06)"
+        alignItems: "center"
     },
 
 
     logo: {
         margin: 0,
-        fontSize: "24px"
+        fontSize: "20px",
+        fontWeight: "700",
+        letterSpacing: "-0.4px"
     },
 
 
     subtitle: {
         margin: "4px 0 0",
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "14px"
     },
 
@@ -2285,14 +2297,16 @@ const styles = {
         padding: "10px 18px",
         border: "none",
         borderRadius: "8px",
-        background: "#111827",
-        color: "white",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+        color: "#F8FAFC",
         cursor: "pointer",
         fontWeight: "600"
     },
 
 
     container: {
+        position: "relative",
+        zIndex: 1,
         maxWidth: "1200px",
         margin: "0 auto",
         padding: "40px 25px"
@@ -2310,12 +2324,14 @@ const styles = {
 
     heading: {
         margin: 0,
-        fontSize: "32px"
+        fontSize: "32px",
+        fontWeight: "600",
+        letterSpacing: "-0.5px"
     },
 
 
     headerText: {
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "16px",
         marginTop: "8px"
     },
@@ -2324,13 +2340,13 @@ const styles = {
     stats: {
         minWidth: "140px",
         padding: "20px 25px",
-        background: "white",
+        background: "#111824",
         borderRadius: "14px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.06)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
 
@@ -2340,8 +2356,8 @@ const styles = {
 
 
     error: {
-        background: "#fee2e2",
-        color: "#991b1b",
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185",
         padding: "14px 18px",
         borderRadius: "10px",
         marginBottom: "20px"
@@ -2349,8 +2365,8 @@ const styles = {
 
 
     success: {
-        background: "#dcfce7",
-        color: "#166534",
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399",
         padding: "14px 18px",
         borderRadius: "10px",
         marginBottom: "20px"
@@ -2374,20 +2390,20 @@ const styles = {
         padding: "11px 18px",
         border: "none",
         borderRadius: "8px",
-        background: "#111827",
-        color: "white",
+        background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+        color: "#F8FAFC",
         cursor: "pointer",
         fontWeight: "600"
     },
 
 
     form: {
-        background: "white",
+        background: "#111824",
         padding: "28px",
         borderRadius: "16px",
         marginBottom: "30px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.06)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
 
@@ -2400,7 +2416,7 @@ const styles = {
 
 
     formEyebrow: {
-        color: "#8b5cf6",
+        color: "#8B5CF6",
         fontSize: "11px",
         fontWeight: "800",
         letterSpacing: "0.08em"
@@ -2416,14 +2432,14 @@ const styles = {
 
     formDescription: {
         margin: 0,
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.5"
     },
 
 
     formAIIcon: {
         fontSize: "35px",
-        background: "#f5f3ff",
+        background: "rgba(139,92,246,0.10)",
         padding: "12px",
         borderRadius: "12px"
     },
@@ -2443,7 +2459,7 @@ const styles = {
         boxSizing: "border-box",
         padding: "12px",
         border:
-            "1px solid #d1d5db",
+            "1px solid #202938",
         borderRadius: "8px",
         fontSize: "14px"
     },
@@ -2455,7 +2471,7 @@ const styles = {
         boxSizing: "border-box",
         padding: "12px",
         border:
-            "1px solid #d1d5db",
+            "1px solid #202938",
         borderRadius: "8px",
         fontSize: "14px",
         resize: "vertical",
@@ -2468,8 +2484,8 @@ const styles = {
         padding: "12px 22px",
         border: "none",
         borderRadius: "8px",
-        background: "#4f46e5",
-        color: "white",
+        background: "#8B5CF6",
+        color: "#F8FAFC",
         cursor: "pointer",
         fontWeight: "600"
     },
@@ -2482,12 +2498,12 @@ const styles = {
 
 
     empty: {
-        background: "white",
+        background: "#111824",
         padding: "60px 30px",
         textAlign: "center",
         borderRadius: "14px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.05)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
 
@@ -2502,8 +2518,8 @@ const styles = {
         padding: "11px 18px",
         border: "none",
         borderRadius: "8px",
-        background: "#4f46e5",
-        color: "white",
+        background: "#8B5CF6",
+        color: "#F8FAFC",
         cursor: "pointer",
         fontWeight: "600"
     },
@@ -2518,11 +2534,11 @@ const styles = {
 
 
     ticket: {
-        background: "white",
+        background: "#111824",
         padding: "28px",
         borderRadius: "16px",
         boxShadow:
-            "0 5px 20px rgba(0,0,0,0.06)"
+            "0 5px 20px rgba(0,0,0,0.35)"
     },
 
 
@@ -2548,13 +2564,13 @@ const styles = {
     ticketId: {
         display: "block",
         marginTop: "6px",
-        color: "#9ca3af",
+        color: "#64748B",
         fontSize: "11px"
     },
 
 
     description: {
-        color: "#6b7280",
+        color: "#94A3B8",
         lineHeight: "1.6",
         marginTop: "18px"
     },
@@ -2568,8 +2584,8 @@ const styles = {
 
 
     category: {
-        background: "#ede9fe",
-        color: "#6d28d9",
+        background: "rgba(139,92,246,0.12)",
+        color: "#8B5CF6",
         padding: "6px 10px",
         borderRadius: "6px",
         fontSize: "12px",
@@ -2586,33 +2602,33 @@ const styles = {
 
 
     priorityUrgent: {
-        background: "#fee2e2",
-        color: "#991b1b"
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185"
     },
 
 
     priorityHigh: {
-        background: "#ffedd5",
-        color: "#c2410c"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     priorityMedium: {
-        background: "#fef3c7",
-        color: "#92400e"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     priorityLow: {
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     },
 
 
     line: {
         border: "none",
         borderTop:
-            "1px solid #e5e7eb",
+            "1px solid #202938",
         margin: "20px 0"
     },
 
@@ -2633,12 +2649,12 @@ const styles = {
     infoText: {
         margin: "7px 0 2px",
         fontSize: "15px",
-        color: "#4b5563"
+        color: "#94A3B8"
     },
 
 
     email: {
-        color: "#9ca3af"
+        color: "#64748B"
     },
 
 
@@ -2648,7 +2664,7 @@ const styles = {
 
     status: {
         padding: "7px 12px",
-        borderRadius: "20px",
+        borderRadius: "16px",
         fontSize: "12px",
         fontWeight: "600",
         whiteSpace: "nowrap"
@@ -2656,32 +2672,32 @@ const styles = {
 
 
     statusOpen: {
-        background: "#fee2e2",
-        color: "#991b1b"
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185"
     },
 
 
     statusProgress: {
-        background: "#fef3c7",
-        color: "#92400e"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     statusResolved: {
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     },
 
 
     statusClosed: {
-        background: "#e5e7eb",
-        color: "#374151"
+        background: "#202938",
+        color: "#94A3B8"
     },
 
 
     statusDefault: {
-        background: "#e5e7eb",
-        color: "#374151"
+        background: "#202938",
+        color: "#94A3B8"
     },
 
 
@@ -2693,9 +2709,9 @@ const styles = {
         marginTop: "24px",
         padding: "19px",
         background:
-            "linear-gradient(135deg, #f5f3ff, #faf5ff)",
+            "linear-gradient(135deg, rgba(139,92,246,0.10), rgba(139,92,246,0.10))",
         border:
-            "1px solid #ddd6fe",
+            "1px solid rgba(139,92,246,0.25)",
         borderRadius: "13px"
     },
 
@@ -2709,7 +2725,7 @@ const styles = {
 
 
     aiEyebrow: {
-        color: "#8b5cf6",
+        color: "#8B5CF6",
         fontSize: "10px",
         fontWeight: "800",
         letterSpacing: "0.08em"
@@ -2719,14 +2735,14 @@ const styles = {
     aiCustomerTitle: {
         margin:
             "4px 0 0",
-        color: "#5b21b6",
+        color: "#7C3AED",
         fontSize: "17px"
     },
 
 
     confidenceBadge: {
         padding: "6px 10px",
-        borderRadius: "20px",
+        borderRadius: "16px",
         fontSize: "10px",
         fontWeight: "800",
         whiteSpace: "nowrap"
@@ -2734,27 +2750,27 @@ const styles = {
 
 
     confidenceHigh: {
-        background: "#dcfce7",
-        color: "#166534"
+        background: "rgba(52,211,153,0.12)",
+        color: "#34D399"
     },
 
 
     confidenceMedium: {
-        background: "#fef3c7",
-        color: "#92400e"
+        background: "rgba(251,191,36,0.12)",
+        color: "#FBBF24"
     },
 
 
     confidenceLow: {
-        background: "#fee2e2",
-        color: "#991b1b"
+        background: "rgba(251,113,133,0.12)",
+        color: "#FB7185"
     },
 
 
     aiCustomerMessage: {
         margin:
             "14px 0",
-        color: "#4b5563",
+        color: "#94A3B8",
         lineHeight: "1.6"
     },
 
@@ -2768,7 +2784,7 @@ const styles = {
 
 
     aiSummaryItem: {
-        background: "white",
+        background: "#111824",
         padding: "11px 12px",
         borderRadius: "9px",
         display: "flex",
@@ -2778,7 +2794,7 @@ const styles = {
 
 
     aiSummaryLabel: {
-        color: "#8b5cf6",
+        color: "#8B5CF6",
         fontSize: "10px",
         textTransform: "uppercase",
         fontWeight: "700",
@@ -2789,7 +2805,7 @@ const styles = {
     aiPrivacyNote: {
         marginTop: "12px",
         fontSize: "11px",
-        color: "#8b5cf6",
+        color: "#8B5CF6",
         fontStyle: "italic",
         lineHeight: "1.5"
     },
@@ -2802,7 +2818,7 @@ const styles = {
     commentsSection: {
         marginTop: "25px",
         borderTop:
-            "1px solid #e5e7eb",
+            "1px solid #202938",
         paddingTop: "20px"
     },
 
@@ -2817,7 +2833,7 @@ const styles = {
 
     commentCount: {
         fontSize: "12px",
-        color: "#6b7280"
+        color: "#94A3B8"
     },
 
 
@@ -2833,9 +2849,9 @@ const styles = {
 
     noComments: {
         padding: "18px",
-        background: "#f9fafb",
+        background: "#111824",
         borderRadius: "10px",
-        color: "#6b7280",
+        color: "#94A3B8",
         fontSize: "13px",
         textAlign: "center"
     },
@@ -2850,13 +2866,13 @@ const styles = {
 
     myComment: {
         alignSelf: "flex-end",
-        background: "#eef2ff"
+        background: "rgba(139,92,246,0.10)"
     },
 
 
     otherComment: {
         alignSelf: "flex-start",
-        background: "#f3f4f6"
+        background: "#151C29"
     },
 
 
@@ -2893,7 +2909,7 @@ const styles = {
         resize: "vertical",
         padding: "11px",
         border:
-            "1px solid #d1d5db",
+            "1px solid #202938",
         borderRadius: "9px",
         fontSize: "14px",
         boxSizing: "border-box",
@@ -2905,8 +2921,8 @@ const styles = {
         padding: "11px 18px",
         border: "none",
         borderRadius: "9px",
-        background: "#4f46e5",
-        color: "white",
+        background: "#8B5CF6",
+        color: "#F8FAFC",
         fontWeight: "600",
         cursor: "pointer"
     },
@@ -2920,7 +2936,7 @@ const styles = {
 
     date: {
         marginTop: "20px",
-        color: "#9ca3af",
+        color: "#64748B",
         fontSize: "12px"
     }
 
