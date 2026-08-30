@@ -16,6 +16,16 @@ const PORT = process.env.PORT || 5000;
 
 
 // ========================================
+// ALLOWED FRONTEND ORIGINS
+// ========================================
+
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://nesti-frontend.onrender.com"
+];
+
+
+// ========================================
 // MONGODB
 // ========================================
 
@@ -36,7 +46,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
 
     cors: {
-        origin: "http://localhost:5173",
+        origin: allowedOrigins,
         credentials: true
     }
 
@@ -93,12 +103,6 @@ io.use((socket, next) => {
         /*
          * Fallback:
          * Read JWT directly from httpOnly cookie.
-         *
-         * We intentionally DON'T use cookie.parse()
-         * because your current cookie package setup
-         * was causing:
-         *
-         * cookie.parse is not a function
          */
 
         const cookieHeader =

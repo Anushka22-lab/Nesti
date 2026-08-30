@@ -14,9 +14,30 @@ const app = express();
 // CORS
 // ======================================================
 
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://nesti-frontend.onrender.com"
+];
+
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        origin: function (origin, callback) {
+
+            // Allow requests without an origin
+            // (Postman, server-to-server, etc.)
+            if (!origin) {
+                return callback(null, true);
+            }
+
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            return callback(
+                new Error("Not allowed by CORS")
+            );
+        },
+
         credentials: true
     })
 );
@@ -58,6 +79,20 @@ app.use(
 app.use(
     "/api/issues",
     issueRoutes
+);
+
+
+// ======================================================
+// HEALTH CHECK
+// ======================================================
+
+app.get(
+    "/",
+    (req, res) => {
+        res.status(200).json({
+            message: "Nesti Backend is running"
+        });
+    }
 );
 
 
