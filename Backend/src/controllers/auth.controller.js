@@ -335,6 +335,10 @@ const loginUser = async (req, res) => {
         // SAVE JWT COOKIE
         // ========================================
 
+        const isProduction =
+            process.env.NODE_ENV === "production";
+
+
         res.cookie(
             "token",
             token,
@@ -342,9 +346,13 @@ const loginUser = async (req, res) => {
 
                 httpOnly: true,
 
-                secure: false,
+                secure:
+                    isProduction,
 
-                sameSite: "lax",
+                sameSite:
+                    isProduction
+                        ? "none"
+                        : "lax",
 
                 path: "/",
 
